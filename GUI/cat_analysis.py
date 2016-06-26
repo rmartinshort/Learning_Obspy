@@ -439,67 +439,71 @@ def cat2list(cat, mt_type = 'Moment_tensor'):
     
     for index in range(cat.count()):
         myevent = cat[index]
-        print myevent
         
-        origins = myevent.origins[0]
-        evtime_mat.append(origins.time)
-        evla = origins.latitude
-        evlo = origins.longitude
-        evdp = origins.depth / 1000.
-        #quality = origins.quality
-        mag_type = myevent.magnitudes[0].magnitude_type
-        mag = myevent.magnitudes[0].mag
-        event_type = myevent.event_type
+        try:
+        
+            origins = myevent.origins[0]
+            evtime_mat.append(origins.time)
+            evla = origins.latitude
+            evlo = origins.longitude
+            evdp = origins.depth / 1000.
+            #quality = origins.quality
+            mag_type = myevent.magnitudes[0].magnitude_type
+            mag = myevent.magnitudes[0].mag
+            event_type = myevent.event_type
 
-        if myevent.focal_mechanisms != []:  
-            
-            if mt_type == 'Moment_tensor':
-                moment_tensor = myevent.focal_mechanisms[0].moment_tensor.tensor
-                if moment_tensor is not None:
-                    eventid = myevent['resource_id'].id.split('&')[0].split('=')[1]
-                    m_rr = moment_tensor.m_rr
-                    m_tt = moment_tensor.m_tt
-                    m_pp = moment_tensor.m_pp
-                    m_rt = moment_tensor.m_rt
-                    m_rp = moment_tensor.m_rp
-                    m_tp = moment_tensor.m_tp
+            if myevent.focal_mechanisms != []:  
+                
+                if mt_type == 'Moment_tensor':
+                    moment_tensor = myevent.focal_mechanisms[0].moment_tensor.tensor
+                    if moment_tensor is not None:
+                        eventid = myevent['resource_id'].id.split('&')[0].split('=')[1]
+                        m_rr = moment_tensor.m_rr
+                        m_tt = moment_tensor.m_tt
+                        m_pp = moment_tensor.m_pp
+                        m_rt = moment_tensor.m_rt
+                        m_rp = moment_tensor.m_rp
+                        m_tp = moment_tensor.m_tp
+                        
+                        #m_rr=3.315e+16, m_tt=-6.189e+16, m_pp=2.874e+16, m_rt=-5311000000000000.0, m_rp=-1.653e+16, m_tp=5044000000000000.0
+                        mt.append([evla, evlo, evdp, mag, m_rr, m_tt,m_pp,m_rt,m_rp,m_tp])
+                        event_id.append(eventid)
+                elif mt_type == 'Focal':
+                    nodal_plane = myevent.focal_mechanisms[0].nodal_planes.nodal_plane_1
+                    if nodal_plane is not None:
+                        eventid = myevent['resource_id'].id.split('&')[0].split('=')[1]
+                        mt.append([evla, evlo, evdp, mag, nodal_plane.strike, nodal_plane.dip, nodal_plane.rake])
+                        event_id.append(eventid)
+                elif mt_type == 'Both':
                     
-                    #m_rr=3.315e+16, m_tt=-6.189e+16, m_pp=2.874e+16, m_rt=-5311000000000000.0, m_rp=-1.653e+16, m_tp=5044000000000000.0
-                    mt.append([evla, evlo, evdp, mag, m_rr, m_tt,m_pp,m_rt,m_rp,m_tp])
-                    event_id.append(eventid)
-            elif mt_type == 'Focal':
-                nodal_plane = myevent.focal_mechanisms[0].nodal_planes.nodal_plane_1
-                if nodal_plane is not None:
-                    eventid = myevent['resource_id'].id.split('&')[0].split('=')[1]
-                    mt.append([evla, evlo, evdp, mag, nodal_plane.strike, nodal_plane.dip, nodal_plane.rake])
-                    event_id.append(eventid)
-            elif mt_type == 'Both':
-                
-                nodal_plane = myevent.focal_mechanisms[0].nodal_planes.nodal_plane_1
-                if nodal_plane is not None:
-                    eventid = myevent['resource_id'].id.split('&')[0].split('=')[1]
-                    mt.append([evla, evlo, evdp, mag, nodal_plane.strike, nodal_plane.dip, nodal_plane.rake])
-                    event_id.append(eventid)
-                    break
-                else:
-                    pass
-                
-                moment_tensor = myevent.focal_mechanisms[0].moment_tensor.tensor
-                if moment_tensor is not None:
-                    eventid = myevent['resource_id'].id.split('&')[0].split('=')[1]
-                    m_rr = moment_tensor.m_rr
-                    m_tt = moment_tensor.m_tt
-                    m_pp = moment_tensor.m_pp
-                    m_rt = moment_tensor.m_rt
-                    m_rp = moment_tensor.m_rp
-                    m_tp = moment_tensor.m_tp
+                    nodal_plane = myevent.focal_mechanisms[0].nodal_planes.nodal_plane_1
+                    if nodal_plane is not None:
+                        eventid = myevent['resource_id'].id.split('&')[0].split('=')[1]
+                        mt.append([evla, evlo, evdp, mag, nodal_plane.strike, nodal_plane.dip, nodal_plane.rake])
+                        event_id.append(eventid)
+                        break
+                    else:
+                        pass
                     
-                    #m_rr=3.315e+16, m_tt=-6.189e+16, m_pp=2.874e+16, m_rt=-5311000000000000.0, m_rp=-1.653e+16, m_tp=5044000000000000.0
-                    mt.append([evla, evlo, evdp, mag, m_rr, m_tt,m_pp,m_rt,m_rp,m_tp])
-                    event_id.append(eventid)
-                
-    
-        eq_matrix.append((evla, evlo, evdp, mag, mag_type, event_type, origins.time))
+                    moment_tensor = myevent.focal_mechanisms[0].moment_tensor.tensor
+                    if moment_tensor is not None:
+                        eventid = myevent['resource_id'].id.split('&')[0].split('=')[1]
+                        m_rr = moment_tensor.m_rr
+                        m_tt = moment_tensor.m_tt
+                        m_pp = moment_tensor.m_pp
+                        m_rt = moment_tensor.m_rt
+                        m_rp = moment_tensor.m_rp
+                        m_tp = moment_tensor.m_tp
+                        
+                        #m_rr=3.315e+16, m_tt=-6.189e+16, m_pp=2.874e+16, m_rt=-5311000000000000.0, m_rp=-1.653e+16, m_tp=5044000000000000.0
+                        mt.append([evla, evlo, evdp, mag, m_rr, m_tt,m_pp,m_rt,m_rp,m_tp])
+                        event_id.append(eventid)
+                    
+        
+            eq_matrix.append((evla, evlo, evdp, mag, mag_type, event_type, origins.time))
+
+        except:
+            continue
         #print mt
         #evla = origins[1]
     
@@ -561,7 +565,7 @@ def check_collision(lats, lons, radius, dist_bt, angle_step):
     
     return lats_m, lons_m, indicator
 
-def plot_mt(earthquakes, mt, event_id, location = None, M_above = 5.0, show_above_M = False, 
+def plot_mt(mapobj,axisobj,figobj,earthquakes, mt, event_id, location = None, M_above = 5.0, show_above_M = False, 
             llat = '-90', ulat = '90', llon = '-170', ulon = '190', figsize = (12,8),
             radius = 25, dist_bt = 600, mt_width = 2, angle_step = 20, show_eq = True, 
             par_range = (-90., 120., 30.), mer_range = (0, 360, 60),
@@ -569,6 +573,7 @@ def plot_mt(earthquakes, mt, event_id, location = None, M_above = 5.0, show_abov
     '''
     Function to plot moment tensors on the map
     Input:
+        mapobj - already existing Basemap object onwhich to plot the quakes
         earthquakes - list of earthquake information
         mt - list of focal/moment_tensor information
         event_id - event ID corresponding to the earthquakes 
@@ -681,37 +686,34 @@ def plot_mt(earthquakes, mt, event_id, location = None, M_above = 5.0, show_abov
     
     stnm = np.array(evid)    
     
-    fig, ax1 = plt.subplots(1,1, figsize = figsize)
+    #fig, ax1 = plt.subplots(1,1, figsize = figsize)
     #map_ax = fig.add_axes([0.03, 0.13, 0.94, 0.82])
     
-    if show_eq:
-        cm_ax = fig.add_axes([0.98, 0.39, 0.04, 0.3])   
-        plt.sca(ax1)
-        cb = mpl.colorbar.ColorbarBase(ax=cm_ax, cmap=colormap, orientation='vertical')
-        cb.set_ticks([0, 0.25, 0.5, 0.75, 1.0])
-        color_range = max_color - min_color
-        cb.set_ticklabels([_i.strftime('%Y-%b-%d, %H:%M:%S %p')
-        for _i in [min_color, min_color + color_range * 0.25,
-           min_color + color_range * 0.50,
-           min_color + color_range * 0.75, max_color]])
+    # if show_eq:
+    #     cm_ax = fig.add_axes([0.98, 0.39, 0.04, 0.3])   
+    #     plt.sca(ax1)
+    #     cb = mpl.colorbar.ColorbarBase(ax=cm_ax, cmap=colormap, orientation='vertical')
+    #     cb.set_ticks([0, 0.25, 0.5, 0.75, 1.0])
+    #     color_range = max_color - min_color
+    #     cb.set_ticklabels([_i.strftime('%Y-%b-%d, %H:%M:%S %p')
+    #     for _i in [min_color, min_color + color_range * 0.25,
+    #        min_color + color_range * 0.50,
+    #        min_color + color_range * 0.75, max_color]])
            
+    #m = Basemap(projection='cyl', lon_0=142.36929, lat_0=38.3215, llcrnrlon=llon,llcrnrlat=llat,urcrnrlon=ulon,urcrnrlat=ulat,resolution=resolution)
     
-    m = Basemap(projection='cyl', lon_0=142.36929, lat_0=38.3215, 
-                llcrnrlon=llon,llcrnrlat=llat,urcrnrlon=ulon,urcrnrlat=ulat,resolution=resolution)
-    
-    m.drawcoastlines()
-    m.drawmapboundary()
-    m.drawcountries()
-    m.drawparallels(np.arange(par_range[0], par_range[1], par_range[2]), labels=[1,0,0,0], linewidth=0)
-    m.drawmeridians(np.arange(mer_range[0],mer_range[1], mer_range[2]), labels=[0,0,0,1], linewidth=0)
+    #mapobj.drawmapboundary()
+    #mapobj.drawcountries()
+    #mapobj.drawparallels(np.arange(par_range[0], par_range[1], par_range[2]), labels=[1,0,0,0], linewidth=0)
+    #mapobj.drawmeridians(np.arange(mer_range[0],mer_range[1], mer_range[2]), labels=[0,0,0,1], linewidth=0)
     
     
     if pretty:    
-        m.etopo()
+        mapobj.etopo()
     else:
-        m.fillcontinents()
+        print 'Map not pretty!'
         
-    x, y = m(lons_m, lats_m)
+    x, y = mapobj(lons_m, lats_m)
     
     for i in range(len(focmecs)):
             
@@ -738,21 +740,21 @@ def plot_mt(earthquakes, mt, event_id, location = None, M_above = 5.0, show_abov
             color = 'r'
                   
         if indicator[i] == 1:
-            m.plot([lons[i],lons_m[i]],[lats[i], lats_m[i]], 'k')   
+            mapobj.plot([lons[i],lons_m[i]],[lats[i], lats_m[i]], 'k')   
             #m.plot([10,20],[0,0])  
         try:
             
             b = Beach(focmecs[i], xy=(x[i], y[i]),width=width, linewidth=1, facecolor= color, alpha=1)
             count += 1
-            line, = ax1.plot(x[i],y[i], 'o', picker=5, markersize=30, alpha =0) 
+            line, = axisobj.plot(x[i],y[i], 'o', picker=5, markersize=30, alpha =0) 
     
         except:
             pass
         b.set_zorder(3)
-        ax1.add_collection(b)
+        axisobj.add_collection(b)
         
         
-    d=5
+    d=2
     circ1 = Line2D([0], [0], linestyle="none", marker="o", alpha=0.6, markersize=10, markerfacecolor="#FFA500")
     circ2 = Line2D([0], [0], linestyle="none", marker="o", alpha=0.6, markersize=10, markerfacecolor="#FFFF00")
     circ3 = Line2D([0], [0], linestyle="none", marker="o", alpha=0.6, markersize=10, markerfacecolor="#00FF00")
@@ -776,19 +778,21 @@ def plot_mt(earthquakes, mt, event_id, location = None, M_above = 5.0, show_abov
         title = 'California events with focal mechanism - color codes depth, size the magnitude'
     elif location is None:
         pass
+
+    #handles, labels = axisobj.get_legend_handles_labels()
         
-    legend1 = plt.legend((circ1, circ2, circ3, circ4, circ5), ("depth $\leq$ 50 km", "50 km $<$ depth $\leq$ 100 km", 
-                                       "100 km $<$ depth $\leq$ 150 km", "150 km $<$ depth $\leq$ 200 km","200 km $<$ depth"), numpoints=1, loc=legend_loc)
+    #axisobj.legend(handles,labels,(circ1, circ2, circ3, circ4, circ5), ("depth $\leq$ 50 km", "50 km $<$ depth $\leq$ 100 km", 
+    #                                   "100 km $<$ depth $\leq$ 150 km", "150 km $<$ depth $\leq$ 200 km","200 km $<$ depth"), numpoints=1, loc=legend_loc)
     
-    plt.title(title)
-    plt.gca().add_artist(legend1)
+    #plt.title(title)
+    #plt.gca().add_artist(legend1)
     
-    if location == 'World':
-        plt.legend((M4,M5,M6,M7), ("M 4.0", "M 5.0", "M 6.0", "M 7.0"), numpoints=1, loc=legend_loc)
+    #if location == 'World':
+    #    axisobj.legend(han,dles,labels(M4,M5,M6,M7), ("M 4.0", "M 5.0", "M 6.0", "M 7.0"), numpoints=1, loc=legend_loc)
         
-    x, y = m(lons, lats)
-    min_size = 6
-    max_size = 30
+    x, y = mapobj(lons, lats)
+    min_size = 2
+    max_size = 10
     min_mag = min(mags)
     max_mag = max(mags)
     
@@ -800,12 +804,70 @@ def plot_mt(earthquakes, mt, event_id, location = None, M_above = 5.0, show_abov
         else:
             magnitude_size = 15.0 ** 2
             colors_plot = "red"
-        m.scatter(x, y, marker='o', s=magnitude_size, c=colors_plot,
+        mapobj.scatter(x, y, marker='o', s=magnitude_size, c=colors_plot,
                 zorder=10)
     
-    plt.show()
-    
     print 'Max magnitude ' + str(np.max(mags)), 'Min magnitude ' + str(np.min(mags))
+
+
+def plot_events(mapobj,axisobj,catalog,label= None, color='depth', pretty = False, colormap=None, 
+             llat = -90, ulat = 90, llon = -180, ulon = 180, figsize=(16,24), 
+             par_range = (-90., 120., 30.), mer_range = (0., 360., 60.),
+             showHour = False, M_above = 0.0, location = 'World', **kwargs):
+
+    '''Simplified version of plot_event'''
+
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import Normalize
+    from matplotlib.cm import ScalarMappable
+
+    lats, lons, mags, times, labels, colors = get_event_info(catalog, M_above, llat, ulat, llon, ulon, color, label)
+                    
+    min_color = min(colors)
+    max_color = max(colors)
+
+    if colormap is None:
+        if color == "date":
+             colormap = plt.get_cmap()
+        else:
+            # Choose green->yellow->red for the depth encoding.
+             colormap = plt.get_cmap("RdYlGn_r")
+                
+    scal_map = ScalarMappable(norm=Normalize(min_color, max_color),
+                                  cmap=colormap)
+    scal_map.set_array(np.linspace(0, 1, 1))
+
+    x, y = mapobj(lons, lats)
+
+    min_size = 1
+    max_size = 12
+    min_mag = 0
+    max_mag = 10
+    if len(mags) > 1:
+        frac = [(_i - min_mag) / (max_mag - min_mag) for _i in mags]
+        magnitude_size = [(_i * (max_size - min_size)) ** 2 for _i in frac]
+        #magnitude_size = [(_i * min_size) for _i in mags]
+        #print magnitude_size
+        colors_plot = [scal_map.to_rgba(c) for c in colors]
+    else:
+        magnitude_size = 15.0 ** 2
+        colors_plot = "red"
+
+    quakes = mapobj.scatter(x, y, marker='o', s=magnitude_size, c=colors_plot, zorder=10)
+    #mapobj.drawmapboundary(fill_color='aqua')
+    #mapobj.drawparallels(np.arange(-90,90,30),labels=[1,0,0,0])
+    #mapobj.drawmeridians(np.arange(mapobj.lonmin,mapobj.lonmax+30,60),labels=[0,0,0,1])
+
+    # if len(mags) > 1:
+    #     cb = mpl.colorbar.ColorbarBase(ax=axisobj, cmap=colormap, orientation='vertical')
+    #     cb.set_ticks([0, 0.25, 0.5, 0.75, 1.0])
+    #     color_range = max_color - min_color
+    #     cb.set_ticklabels([_i.strftime('%Y-%b-%d') if color == "date" else '%.1fkm' % (_i)
+    #             for _i in [min_color, min_color + color_range * 0.25,
+    #                    min_color + color_range * 0.50,
+    #                    min_color + color_range * 0.75, max_color]])
+
+    return quakes
     
 
 def plot_event(catalog, projection='cyl', resolution='l',
@@ -867,7 +929,6 @@ def plot_event(catalog, projection='cyl', resolution='l',
             # doctest:+SKIP
         >>> cat.plot()  # doctest:+SKIP
         """
-        from mpl_toolkits.basemap import Basemap
         import matplotlib.pyplot as plt
         from matplotlib.colors import Normalize
         from matplotlib.cm import ScalarMappable
@@ -921,17 +982,17 @@ def plot_event(catalog, projection='cyl', resolution='l',
                                   cmap=colormap)
         scal_map.set_array(np.linspace(0, 1, 1))
 
-        fig = plt.figure(figsize = figsize)
+        #fig = plt.figure(figsize = figsize)
         # The colorbar should only be plotted if more then one event is
         # present.
-        if len(catalog) > 1:
-            map_ax = fig.add_axes([0.03, 0.13, 0.94, 0.82])
+        #if len(catalog) > 1:
+        #    map_ax = fig.add_axes([0.03, 0.13, 0.94, 0.82])
             #cm_ax = fig.add_axes([0.03, 0.05, 0.94, 0.05])
             #rect = [left, bottom, width, height]
-            cm_ax = fig.add_axes([0.98, 0.39, 0.04, 0.3])
-            plt.sca(map_ax)
-        else:
-            map_ax = fig.add_axes([0.05, 0.05, 0.90, 0.90])
+        #    cm_ax = fig.add_axes([0.98, 0.39, 0.04, 0.3])
+        #    plt.sca(map_ax)
+        #else:
+        #    map_ax = fig.add_axes([0.05, 0.05, 0.90, 0.90])
 
         if projection == 'cyl':
             map = Basemap(resolution=resolution, lat_0 = lat_0, lon_0 = lon_0,
