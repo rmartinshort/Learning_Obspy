@@ -76,11 +76,11 @@ class QWGUI(Frame):
 
 		#Call one of Quinhai's functions here to make the initial map: This is just a placeholder 
 
-		self.map = Basemap(ax=self.a,lat_0=38,lon_0=-122.0,resolution ='l',llcrnrlon=-179,llcrnrlat=-79,urcrnrlon=179.9,urcrnrlat=79)
+		self.map = Basemap(ax=self.a,lat_0=38,lon_0=-122.0,resolution ='l',llcrnrlon=-179.9,llcrnrlat=-89,urcrnrlon=179.9,urcrnrlat=89)
 		#self.map.shadedrelief()
 		self.map.arcgisimage(service='NatGeo_World_Map',verbose=False,xpixels=10000)
-		self.map.drawparallels(np.arange(-90,90,30),labels=[1,1,0,0])
-		self.map.drawmeridians(np.arange(-180,180,30),labels=[0,0,0,1])
+		self.map.drawparallels(np.arange(-90,90,30),labels=[1,1,0,0],linewidth=0.5,fontsize=4)
+		self.map.drawmeridians(np.arange(-180,180,30),labels=[0,0,0,1],linewidth=0.5,fontsize=4)
 
 		date = dt.utcnow()
 		self.map.nightshade(date)
@@ -96,9 +96,9 @@ class QWGUI(Frame):
 
 		#Various default settings
 
-		self.mts = False #display moment tensors where possible
+		self.momenttensors = True #display moment tensors where possible
 		self.quakesplotted = None
-		self.mtsplotted = None
+		self.MTs = None
 		self.datacenter = 'USGS' #default datacenter to retrieve quake data from
 		self.Createmenubar(parent)
 
@@ -133,12 +133,12 @@ class QWGUI(Frame):
 
 		Stcord = Entry(self)
 		Stcord.grid(row=12,column=7,columnspan=1,sticky=E)
-		Label(self,text='Start point ').grid(row=12,column=6,columnspan=3,sticky=W)
+		Label(self,text='Start:').grid(row=12,column=6,columnspan=3,sticky=W)
 		self.userentries['profile_start'] = Stcord
 
 		Edcord = Entry(self)
 		Edcord.grid(row=13,column=7,columnspan=1,sticky=E)
-		Label(self,text='End point').grid(row=13,column=6,columnspan=3,sticky=W)
+		Label(self,text='End:').grid(row=13,column=6,columnspan=3,sticky=W)
 		self.userentries['profile_end'] = Edcord
 
 		Button(self, text='Plot profile',pady=1,padx=1,command=self.plotprofile).grid(row=14,column=6,sticky=W+S+E+N,columnspan=4)
@@ -154,7 +154,7 @@ class QWGUI(Frame):
 
 		Evttime = Entry(self)
 		Evttime.grid(row=13,column=12,columnspan=2,sticky=E)
-		Label(self,text='Event start date [yyyy/mm/dd]').grid(row=13,column=11,columnspan=1,sticky=W)
+		Label(self,text='Event start date [yyyy-mm-dd]').grid(row=13,column=11,columnspan=1,sticky=W)
 		self.userentries['evttime'] = Evttime
 
 		Button(self, text='Set',pady=1,padx=1,command=self.setquakesmanual).grid(row=14,column=11,sticky=W+S+E+N,columnspan=1)
@@ -259,10 +259,11 @@ class QWGUI(Frame):
 		self.catalog = quaketools.get_cat(data_center=self.datacenter,includeallorigins=True,starttime=t1,endtime=t2,minmagnitude=mag1,maxmagnitude=mag2)
 		self.quakes, self.mts, self.events, self.qblasts = quaketools.cat2list(self.catalog)
 
-		if self.mts == True:
+		if self.momenttensors == True:
 
 			#plot the moment tensors and redraw
-			quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events)
+			self.mtlines, self.MTs, self.quakedots = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events)
+			print self.mtlines
 			self.canvas.draw()
 
 		else:
@@ -278,11 +279,24 @@ class QWGUI(Frame):
 			self.canvas.draw()
 			self.quakesplotted = None
 
-		if self.mtsplotted != None:
+		if self.MTs != None:
 
-			self.mtsplotted.remove()
+			for e1 in self.MTs:
+				print e1
+				e1.remove()
+
+			for e2 in self.mtlines:
+				if e2 is not None:
+					print e2
+					e2[0].remove()
+
+			self.quakedots.remove()
+
+			#self.mtlines.remove()
+			#self.mtdots.remove()
+			#self.MTs.remove()
 			self.canvas.draw()
-			self.mtsplotted = None
+			self.MTs = None
 
 		else:
 

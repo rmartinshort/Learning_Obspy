@@ -707,13 +707,11 @@ def plot_mt(mapobj,axisobj,figobj,earthquakes, mt, event_id, location = None, M_
     #mapobj.drawparallels(np.arange(par_range[0], par_range[1], par_range[2]), labels=[1,0,0,0], linewidth=0)
     #mapobj.drawmeridians(np.arange(mer_range[0],mer_range[1], mer_range[2]), labels=[0,0,0,1], linewidth=0)
     
-    
-    if pretty:    
-        mapobj.etopo()
-    else:
-        print 'Map not pretty!'
         
     x, y = mapobj(lons_m, lats_m)
+
+    mtlineobjs = []
+    mtobjs = []
     
     for i in range(len(focmecs)):
             
@@ -740,18 +738,26 @@ def plot_mt(mapobj,axisobj,figobj,earthquakes, mt, event_id, location = None, M_
             color = 'r'
                   
         if indicator[i] == 1:
-            mapobj.plot([lons[i],lons_m[i]],[lats[i], lats_m[i]], 'k')   
+            lineobj = mapobj.plot([lons[i],lons_m[i]],[lats[i], lats_m[i]], 'k') 
+            #mtlineobjs.append(lineobj)
             #m.plot([10,20],[0,0])  
+        else:
+
+            lineobj = None
+
         try:
             
             b = Beach(focmecs[i], xy=(x[i], y[i]),width=width, linewidth=1, facecolor= color, alpha=1)
             count += 1
-            line, = axisobj.plot(x[i],y[i], 'o', picker=5, markersize=30, alpha =0) 
+            #line = axisobj.plot(x[i],y[i], 'o', picker=5, markersize=30, alpha =0)
+            #mtlineobjs.append(line) 
     
         except:
             pass
         b.set_zorder(3)
         axisobj.add_collection(b)
+        mtobjs.append(b)
+        mtlineobjs.append(lineobj)
         
         
     d=2
@@ -804,10 +810,14 @@ def plot_mt(mapobj,axisobj,figobj,earthquakes, mt, event_id, location = None, M_
         else:
             magnitude_size = 15.0 ** 2
             colors_plot = "red"
-        mapobj.scatter(x, y, marker='o', s=magnitude_size, c=colors_plot,
+        
+        quakedots = mapobj.scatter(x, y, marker='o', s=magnitude_size, c=colors_plot,
                 zorder=10)
     
     print 'Max magnitude ' + str(np.max(mags)), 'Min magnitude ' + str(np.min(mags))
+
+
+    return mtlineobjs,mtobjs,quakedots
 
 
 def plot_events(mapobj,axisobj,catalog,label= None, color='depth', pretty = False, colormap=None, 
