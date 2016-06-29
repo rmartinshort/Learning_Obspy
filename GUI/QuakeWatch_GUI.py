@@ -69,21 +69,22 @@ class QWGUI(Frame):
 			Grid.columnconfigure(parent,i,weight=1)
 
         #create subplot where the map will go
-		self.f = Figure(figsize=(5.0,2.2),dpi=250,facecolor='white')
+		self.f = Figure(dpi=250,facecolor='white')
+
+		#set the size of the figure for use with global map. Will need to choose this on the fly when
+		#resizing the figure
+		
+		self.f.set_size_inches(5.0,2.2)
 		self.a = self.f.add_subplot(111)
 
 		#Call function to download some earhquakes and ... 
 
-		#Call one of Quinhai's functions here to make the initial map: This is just a placeholder 
-
+		#Initial meap setup
 		self.map = Basemap(ax=self.a,lat_0=38,lon_0=-122.0,resolution ='l',llcrnrlon=-179.9,llcrnrlat=-89,urcrnrlon=179.9,urcrnrlat=89)
-		#self.map.shadedrelief()
 		self.map.arcgisimage(service='NatGeo_World_Map',verbose=False,xpixels=10000)
 		self.map.drawparallels(np.arange(-90,90,30),labels=[1,1,0,0],linewidth=0.5,fontsize=4)
 		self.map.drawmeridians(np.arange(-180,180,30),labels=[0,0,0,1],linewidth=0.5,fontsize=4)
 
-		date = dt.utcnow()
-		self.map.nightshade(date)
 
 		self.canvas = FigureCanvasTkAgg(self.f, self)
 		self.canvas.mpl_connect('button_press_event',Browse.onpick)
@@ -102,6 +103,33 @@ class QWGUI(Frame):
 		self.datacenter = 'USGS' #default datacenter to retrieve quake data from
 		self.Createmenubar(parent)
 
+	def SetStartMap(self):
+
+		'''Make global pretty map. Takes a long time so only make on startup'''
+
+		self.map = Basemap(ax=self.a,lat_0=38,lon_0=-122.0,resolution ='l',llcrnrlon=-179.9,llcrnrlat=-89,urcrnrlon=179.9,urcrnrlat=89)
+		#self.map.shadedrelief()
+		self.map.arcgisimage(service='NatGeo_World_Map',verbose=False,xpixels=10000)
+		self.map.drawparallels(np.arange(-90,90,30),labels=[1,1,0,0],linewidth=0.5,fontsize=4)
+		self.map.drawmeridians(np.arange(-180,180,30),labels=[0,0,0,1],linewidth=0.5,fontsize=4)
+		self.canvas.draw()
+
+	def SetZoomMap(self,lon1,lon2,lat1,lat2):
+
+		'''Zoom into map'''
+
+		self.a.clear()
+
+		#true_scale_lat = (lat2-lat1)/2
+
+		print lat1,lat2,lon1,lon2
+
+		self.map = Basemap(ax=self.a,lat_0=38,lon_0=-122.0,resolution ='l',llcrnrlon=lon1,llcrnrlat=lat1,urcrnrlon=lon2,urcrnrlat=lat2)
+
+		#self.map = Basemap(ax=self.a,projection='merc',llcrnrlat=lat1,urcrnrlat=lat2,llcrnrlon=lon1,urcrnrlon=lon2,lat_ts=true_scale_lat,resolution='l')
+		#self.map.arcgisimage(service='NatGeo_World_Map',verbose=False,xpixels=10000)
+		self.map.fillcontinents()
+		self.canvas.draw()
 
 
 	def SetElements(self):
@@ -170,7 +198,18 @@ class QWGUI(Frame):
 
 	def zoomin(self):
 
-		print 'Zoom'
+		boxcoordsNE = self.userentries['Northeast_box'].get()
+		boxcoordsSW = self.userentries['Southwest_box'].get()
+
+		try:
+			NElon = float(boxcoordsNE.split('/')[0])
+			NElat = float(boxcoordsNE.split('/')[1])
+			SWlon = float(boxcoordsSW.split('/')[0])
+			SWlat = float(boxcoordsSW.split('/')[1])
+		except:
+			print 'User coordinates not entered correctly'
+
+		self.SetZoomMap(SWlon,NElon,SWlat,NElat)
 
 	def drawbox(self):
 
@@ -180,10 +219,10 @@ class QWGUI(Frame):
 		boxcoordsSW = self.userentries['Southwest_box'].get()
 
 		try:
-			NElon = boxcoordsNE.split('/')[0]
-			NElat = boxcoordsNE.split('/')[1]
-			SWlon = boxcoordsSW.split('/')[0]
-			SWlat = boxcoordsSW.split('/')[1]
+			NElon = float(boxcoordsNE.split('/')[0])
+			NElat = float(boxcoordsNE.split('/')[1])
+			SWlon = float(boxcoordsSW.split('/')[0])
+			SWlat = float(boxcoordsSW.split('/')[1])
 		except:
 			print 'User coordinates not entered correctly'
 
@@ -198,7 +237,10 @@ class QWGUI(Frame):
 
 	def resetzoom(self):
 
-		print 'Reset'
+		'''Reset the zoom to the global map'''
+
+		self.a.clear()
+		self.SetStartMap()
 
 	def plotprofile(self):
 
