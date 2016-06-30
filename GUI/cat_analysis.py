@@ -797,8 +797,8 @@ def plot_mt(mapobj,axisobj,figobj,earthquakes, mt, event_id, location = None, M_
     #    axisobj.legend(han,dles,labels(M4,M5,M6,M7), ("M 4.0", "M 5.0", "M 6.0", "M 7.0"), numpoints=1, loc=legend_loc)
         
     x, y = mapobj(lons, lats)
-    min_size = 2
-    max_size = 10
+    min_size = 1
+    max_size = 8
     min_mag = min(mags)
     max_mag = max(mags)
     
