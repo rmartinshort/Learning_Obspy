@@ -21,7 +21,7 @@ import tkFileDialog
 from quitter import Quitter
 
 #Allow matplotlib to be used within a tkinter canvas
-matplotlib.use("TkAgg")
+#matplotlib.use("macosx")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
@@ -73,13 +73,28 @@ class QWGUI(Frame):
 		self.momenttensors = True #display moment tensors where possible
 		self.quakesplotted = None
 		self.MTs = None
+
+		t2 = str(datetime.datetime.today()).split(' ') #Current time
+		t2 = t2[0]+'T'+t2[1][:-3]
+		self.now = UTCDateTime(t2)
+
 		self.starttime = 604800 #1 week quakes
+
+		#--------------------------
+		#Default map boundaries
+		#--------------------------
+		self.minlon = -179.9
+		self.maxlon = 179.9
+		self.minlat = -89
+		self.maxlat = 89
+		#--------------------------
+
 		self.minmag = 4.5
 		self.maxmag = 10.0
 		self.datacenter = 'USGS' #default datacenter to retrieve quake data from
 
         #create subplot where the map will go
-		self.f = Figure(dpi=250,facecolor='white')
+		self.f = plt.figure(dpi=250,facecolor='white')
 
 		#set the size of the figure for use with global map. Will need to choose this on the fly when
 		#resizing the figure
@@ -96,9 +111,13 @@ class QWGUI(Frame):
 		self.map.drawmeridians(np.arange(-180,180,30),labels=[0,0,0,1],linewidth=0.5,fontsize=4)
 
 		self.canvas = FigureCanvasTkAgg(self.f, self)
-		self.canvas.mpl_connect('button_press_event',Browse.onpick)
-		self.canvas.show()
+
+		#plot quakes for the last week on the globe map with default parameters
+		self.worldquakes()
+
+		self.f.canvas.mpl_connect('button_press_event',Browse.onpick)
 		self.canvas.get_tk_widget().grid(row=1,sticky=W+S+N+E,columnspan=14,rowspan=10)
+		self.canvas.show()
 
 		self.SetElements()
 
@@ -106,8 +125,7 @@ class QWGUI(Frame):
 
 		self.Createmenubar(parent)
 
-		#plot quakes for the last week on the globe map with default parameters
-		self.worldquakes()
+
 
 	def SetStartMap(self):
 
@@ -302,17 +320,14 @@ class QWGUI(Frame):
 
 		t1 = str(starttime)+'T00:00:00.000'
 
-		t2 = str(datetime.datetime.today()).split(' ') #Current time
-		t2 = t2[0]+'T'+t2[1][:-3]
+		t2 = self.now
 
 		try:
 			t1 = UTCDateTime(t1)
-			t2 = UTCDateTime(t2)
 		except:
 			print 'Alert: Times not entered correctly!'
 			print 'Default time range : 1970-01-01 to today'
 			t1 = UTCDateTime("1970-01-01T00:00:00.000")
-			t2 = UTCDateTime(t2)
 
 
 		mags = self.userentries['magrange'].get()
@@ -330,13 +345,20 @@ class QWGUI(Frame):
 		try:
 
 			NElat,NElon,SWlat,SWlon = self.GetBoxCoors()
+
+			#set the dafault map coordinates to be those corresponding to the inputs
+			self.minlon = SWlon
+			self.maxlon = NElon
+			self.minlat = SWlat
+			self.maxlat = NElat
+
 			self.catalog = quaketools.get_cat(data_center=self.datacenter,includeallorigins=True,starttime=t1,endtime=t2,minmagnitude=mag1,maxmagnitude=mag2,maxlongitude=NElon,minlongitude=SWlon,maxlatitude=NElat,minlatitude=SWlat)
 			self.quakes, self.mts, self.events, self.qblasts = quaketools.cat2list(self.catalog)
 
 			if self.momenttensors == True:
 
 				#plot the moment tensors and redraw
-				self.mtlines, self.MTs, self.quakedots = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,llat=SWlat,ulat=NElat,llon=SWlon,ulon=NElon,dist_bt=200,radius=5,mt_width=1)
+				self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,llat=SWlat,ulat=NElat,llon=SWlon,ulon=NElon,dist_bt=200,radius=5,mt_width=1)
 
 			else:
 				#only plotting events, so continue
@@ -355,7 +377,7 @@ class QWGUI(Frame):
 			if self.momenttensors == True:
 
 				#plot the moment tensors and redraw
-				self.mtlines, self.MTs, self.quakedots = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events)
+				self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events)
 
 			else:
 				#only plotting events, so continue
@@ -482,19 +504,53 @@ class QWGUI(Frame):
 
 		'''Get world catalog of quakes and plot. If we already on a global map, then we just plot the elemments'''
 
-		t2 = str(datetime.datetime.today()).split(' ') #Current time
-		today = t2[0]+'T'+t2[1][:-3]
-
-		t2 = UTCDateTime(today)
+		t2 = self.now
 		t1 = t2-self.starttime
 
 		self.catalog = quaketools.get_cat(data_center=self.datacenter,includeallorigins=True,starttime=t1,endtime=t2,minmagnitude=self.minmag,maxmagnitude=self.maxmag)
 		self.quakes, self.mts, self.events, self.qblasts = quaketools.cat2list(self.catalog)
 
+
+
 		if self.momenttensors == True:
 
 			#plot the moment tensors and redraw
-			self.mtlines, self.MTs, self.quakedots = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,mt_width=3)
+
+			#maximum radius of a moment tensor
+			print '---------------------------'
+			print self.events
+			print '---------------------------'
+
+			mtradius = 10
+			self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,mt_width=3,radius=mtradius,angle_step=30)
+
+			Browse.updatedata(xs,ys,urls,mtradius)
+			print xs,ys,urls
+
+		else:
+			#only plotting events, so continue
+			self.quakesplotted = quaketools.plot_events(self.map,self.a,self.quakes)
+		
+		self.canvas.draw()
+
+	def Autoupdate(self):
+
+		'''For use with the auto-updater - get only the quakes within the map region and update'''
+
+		t2 = str(datetime.datetime.today()).split(' ') #Update the time
+		t2 = t2[0]+'T'+t2[1][:-3]
+		self.now = UTCDateTime(t2)
+
+		t2 = self.now
+		t1 = t2-self.starttime
+
+		self.catalog = quaketools.get_cat(data_center=self.datacenter,includeallorigins=True,starttime=t1,endtime=t2,minmagnitude=self.minmag,maxmagnitude=self.maxmag,maxlongitude=self.maxlon,minlongitude=self.minlon,maxlatitude=self.maxlat,minlatitude=self.minlon)
+		self.quakes, self.mts, self.events, self.qblasts = quaketools.cat2list(self.catalog)
+
+		if self.momenttensors == True:
+
+			#plot the moment tensors and redraw
+			self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,mt_width=3,radius=10,angle_step=40,llat=SWlat,ulat=NElat,llon=SWlon,ulon=NElon)
 
 		else:
 			#only plotting events, so continue

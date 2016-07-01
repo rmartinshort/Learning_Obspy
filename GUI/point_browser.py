@@ -9,31 +9,48 @@ class PointBrowser:
     generated the point will be shown in the lower axes.  Use the 'n'
     and 'p' keys to browse through the next and previous points
     """
-    def __init__(self):
+    def __init__(self,xs=None,ys=None):
         self.lastind = 0
+        self.xs = None
+        self.ys = None
+        self.urls = None
+
+    def updatedata(self,xs,ys,urls,rad):
+
+        self.xs = xs
+        self.ys = ys
+        self.url = urls
+        self.mtsize = rad/2.0
 
     def onpick(self, event):
 
        print 'mouse click!'
 
        # the click locations
-       x = event.x
-       y = event.y
 
-       print x,y
+       lon = event.xdata
+       lat = event.ydata
 
+       print lon,lat
 
-       #distances = np.hypot(x-xs[event.ind], y-ys[event.ind])
-       #indmin = distances.argmin()
-       #dataind = event.ind[indmin]
+       if self.xs.any():
 
-       #self.lastind = dataind
-       #self.update()
+         #determine distances from the click point to each of the moment tensors
+         distances = np.hypot(lon-self.xs, lat-self.ys)
+
+         #determine index of the nearest moment tensor
+         indmin = distances.argmin()
+
+         #detrmine smallest distance 
+         if distances[indmin] < self.mtsize:
+
+          self.lastind = indmin
+          self.update()
 
     def update(self):
         if self.lastind is None: return
 
         dataind = self.lastind
 
-        open_url = url[dataind]
+        open_url = self.url[dataind]
         webbrowser.open(open_url, new=0, autoraise=True)

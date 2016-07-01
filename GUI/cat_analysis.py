@@ -565,7 +565,7 @@ def check_collision(lats, lons, radius, dist_bt, angle_step):
     
     return lats_m, lons_m, indicator
 
-def plot_mt(mapobj,axisobj,figobj,earthquakes, mt, event_id, location = None, M_above = 5.0, show_above_M = False, 
+def plot_mt(mapobj,axisobj,figobj,earthquakes, mt, event_id, location = None, M_above = 3.0, show_above_M = True, 
             llat = '-90', ulat = '90', llon = '-170', ulon = '190', figsize = (12,8),
             radius = 25, dist_bt = 600, mt_width = 2, angle_step = 20, show_eq = True, 
             par_range = (-90., 120., 30.), mer_range = (0, 360, 60),
@@ -649,7 +649,7 @@ def plot_mt(mapobj,axisobj,figobj,earthquakes, mt, event_id, location = None, M_
         evid = np.array(event_id)[index]
         times_select = np.array(times)[index]
     else:
-        evid = [row[0] for row in event_id]
+        evid = [row for row in event_id]
         times_select = times
         mt_select = mt
 
@@ -817,7 +817,7 @@ def plot_mt(mapobj,axisobj,figobj,earthquakes, mt, event_id, location = None, M_
     print 'Max magnitude ' + str(np.max(mags)), 'Min magnitude ' + str(np.min(mags))
 
 
-    return mtlineobjs,mtobjs,quakedots
+    return mtlineobjs,mtobjs,quakedots,xs,ys,url
 
 
 def plot_events(mapobj,axisobj,catalog,label= None, color='depth', pretty = False, colormap=None, 
