@@ -91,6 +91,7 @@ class QWGUI(Frame):
 
 		self.minmag = 4.5
 		self.maxmag = 10.0
+		self.mtradius = 10
 		self.datacenter = 'USGS' #default datacenter to retrieve quake data from
 
         #create subplot where the map will go
@@ -115,7 +116,12 @@ class QWGUI(Frame):
 		#plot quakes for the last week on the globe map with default parameters
 		self.worldquakes()
 
+		Browse.addobjs(self.canvas,self.map)
+
 		self.f.canvas.mpl_connect('button_press_event',Browse.onpick)
+		self.f.canvas.mpl_connect('motion_notify_event', Browse.motion)
+		self.f.canvas.mpl_connect('button_release_event',Browse.releasepick)
+
 		self.canvas.get_tk_widget().grid(row=1,sticky=W+S+N+E,columnspan=14,rowspan=10)
 		self.canvas.show()
 
@@ -126,14 +132,17 @@ class QWGUI(Frame):
 		self.Createmenubar(parent)
 
 
-
 	def SetStartMap(self):
 
 		'''Make global pretty map. Takes a long time so only make on startup'''
 
 		self.map = Basemap(ax=self.a,lat_0=38,lon_0=-122.0,resolution ='l',llcrnrlon=-179.9,llcrnrlat=-89,urcrnrlon=179.9,urcrnrlat=89)
 		#self.map.shadedrelief()
-		self.map.arcgisimage(service='NatGeo_World_Map',verbose=False,xpixels=10000)
+		#self.map.arcgisimage(service='NatGeo_World_Map',verbose=False,xpixels=10000)
+
+		#placeholder - makes things run much faster for debugging
+		self.map.fillcontinents()
+		
 		self.map.drawparallels(np.arange(-90,90,30),labels=[1,1,0,0],linewidth=0.5,fontsize=4)
 		self.map.drawmeridians(np.arange(-180,180,30),labels=[0,0,0,1],linewidth=0.5,fontsize=4)
 		self.canvas.draw()
@@ -205,13 +214,13 @@ class QWGUI(Frame):
 
 		'''Zoom into map'''
 
+		#try:
+
 		self.a.clear()
 
 		#Ensure that no extra elememts are plotted
 		self.MTs = None
 		self.quakesplotted = None
-
-		#true_scale_lat = (lat2-lat1)/2
 
 		#scale the longitude and latiude grid increments
 		latinc = int((max(lat1,lat2)-min(lat1,lat2))/6)
@@ -227,33 +236,70 @@ class QWGUI(Frame):
 			res = 'l'
 
 		#choose a resolution based on the size of the provided box
+		print 'Lower left lon: %g' %lon1
+		print 'Upper right lon: %g' %lon2
+		print 'lower left lat: %g' %lat1
+		print 'upper right lat: %g' %lat2 
+
 
 		self.map = Basemap(ax=self.a,lat_0=lat0,lon_0=lon0,resolution=res,llcrnrlon=lon1,llcrnrlat=lat1,urcrnrlon=lon2,urcrnrlat=lat2)
 		self.map.drawparallels(np.arange(lat1,lat2,latinc),labels=[1,1,0,0],linewidth=0.5,fontsize=4)
 		self.map.drawmeridians(np.arange(lon1,lon2,loninc),labels=[0,0,0,1],linewidth=0.5,fontsize=4)
+		self.map.fillcontinents()
+		self.map.drawcountries()
+
+		#redraw the earthquakes, if they exist (they should always exist)
+		#keeps the catalog object thats already been saved in memory and just replots the events (unless we we moment tensors)
+
+		if self.momenttensors == True:
+
+			self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,llat=lat1,ulat=lat2,llon=lon1,ulon=lon2,dist_bt=200,radius=self.mtradius,mt_width=1)
+			Browse.updatedata(xs,ys,urls,self.mtradius)
+
+		else: 
+
+			quaketools.plot_events(self.map,self.a,self.quakes,llat=lat1,ulat=lat2,llon=lon1,ulon=lon2,dist_bt=100)
+
+
 
 		#self.map = Basemap(ax=self.a,projection='merc',llcrnrlat=lat1,urcrnrlat=lat2,llcrnrlon=lon1,urcrnrlon=lon2,lat_ts=true_scale_lat,resolution='l')
 		#self.map.arcgisimage(service='NatGeo_World_Map',verbose=False,xpixels=10000)
 
 		#self.map.drawlsmask(land_color="#ddaa66", ocean_color="#7777ff",resolution='i')
-		self.map.fillcontinents()
-		self.map.drawcountries()
 		self.canvas.draw()
+
+		#except:
+		#	print 'Unable to zoom at this time!'
 
 	def zoomin(self):
 
-		boxcoordsNE = self.userentries['Northeast_box'].get()
-		boxcoordsSW = self.userentries['Southwest_box'].get()
+		NElat,NElon,SWlat,SWlon = self.GetBoxCoors()
 
-		try:
-			NElon = float(boxcoordsNE.split('/')[0])
-			NElat = float(boxcoordsNE.split('/')[1])
-			SWlon = float(boxcoordsSW.split('/')[0])
-			SWlat = float(boxcoordsSW.split('/')[1])
-		except:
-			print 'User coordinates not entered correctly'
+		if NElat:
 
-		self.SetZoomMap(SWlon,NElon,SWlat,NElat)
+			try:
+				print SWlon,SWlat,NElon,NElat
+				self.SetZoomMap(SWlon,NElon,SWlat,NElat)
+			except:
+				print 'Something went wrong with the box coodinates: could be outside the domain!'
+
+			#reset the box coordinates to 'none' so we can draw another box 
+			Browse.updateboxcoords()
+
+			boxcoordsNE = self.userentries['Northeast_box'].get()
+			boxcoordsSW = self.userentries['Southwest_box'].get()
+
+		else:
+
+			try:
+				NElon = float(boxcoordsNE.split('/')[0])
+				NElat = float(boxcoordsNE.split('/')[1])
+				SWlon = float(boxcoordsSW.split('/')[0])
+				SWlat = float(boxcoordsSW.split('/')[1])
+				self.SetZoomMap(SWlon,NElon,SWlat,NElat)
+			except:
+				print 'User coordinates not entered correctly'
+
 
 	def drawbox(self):
 
@@ -286,7 +332,11 @@ class QWGUI(Frame):
 		self.a.clear()
 		self.MTs = None
 		self.quakesplotted = None
+		Browse.updateboxcoords()
+
+		#Return to the default quake map
 		self.SetStartMap()
+		self.worldquakes()
 
 	def plotprofile(self):
 
@@ -358,7 +408,8 @@ class QWGUI(Frame):
 			if self.momenttensors == True:
 
 				#plot the moment tensors and redraw
-				self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,llat=SWlat,ulat=NElat,llon=SWlon,ulon=NElon,dist_bt=200,radius=5,mt_width=1)
+				self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,llat=SWlat,ulat=NElat,llon=SWlon,ulon=NElon,dist_bt=200,radius=self.mtradius,mt_width=1)
+				Browse.updatedata(xs,ys,urls,self.mtradius)
 
 			else:
 				#only plotting events, so continue
@@ -378,6 +429,7 @@ class QWGUI(Frame):
 
 				#plot the moment tensors and redraw
 				self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events)
+				Browse.updatedata(xs,ys,urls,self.mtradius)
 
 			else:
 				#only plotting events, so continue
@@ -386,6 +438,9 @@ class QWGUI(Frame):
 		self.canvas.draw()
 
 	def resetmap(self):
+
+		Browse.updatedata()
+		Browse.updateboxcoords()
 
 		if self.quakesplotted != None:
 
@@ -429,6 +484,7 @@ class QWGUI(Frame):
 			# self.canvas.show()
 			# self.canvas.get_tk_widget().grid(row=1,sticky=W+S+N+E,columnspan=14,rowspan=10)
 
+
 	def refreshloop(self):
 		'''Refresh the map data accordingly'''
 
@@ -437,6 +493,7 @@ class QWGUI(Frame):
 
 		#GetLatestseismicity(14) #Get seismicity from the last 14 days, down to magnitude 0.1
 		#self.Autoupdateplot()
+		#self.Autoupdate()
 		tk.after(210000,self.refreshloop) #Refresh the dataset every 10 mins
 
 
@@ -504,28 +561,20 @@ class QWGUI(Frame):
 
 		'''Get world catalog of quakes and plot. If we already on a global map, then we just plot the elemments'''
 
+		print 'Getting world quakes!!'
+
 		t2 = self.now
 		t1 = t2-self.starttime
 
 		self.catalog = quaketools.get_cat(data_center=self.datacenter,includeallorigins=True,starttime=t1,endtime=t2,minmagnitude=self.minmag,maxmagnitude=self.maxmag)
 		self.quakes, self.mts, self.events, self.qblasts = quaketools.cat2list(self.catalog)
 
-
-
 		if self.momenttensors == True:
 
-			#plot the moment tensors and redraw
+			self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,mt_width=3,radius=self.mtradius,angle_step=30)
 
-			#maximum radius of a moment tensor
-			print '---------------------------'
-			print self.events
-			print '---------------------------'
-
-			mtradius = 10
-			self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,mt_width=3,radius=mtradius,angle_step=30)
-
-			Browse.updatedata(xs,ys,urls,mtradius)
-			print xs,ys,urls
+			Browse.updatedata(xs,ys,urls,self.mtradius)
+			#print xs,ys,urls
 
 		else:
 			#only plotting events, so continue
@@ -536,6 +585,8 @@ class QWGUI(Frame):
 	def Autoupdate(self):
 
 		'''For use with the auto-updater - get only the quakes within the map region and update'''
+
+		print 'Updating catalog!'
 
 		t2 = str(datetime.datetime.today()).split(' ') #Update the time
 		t2 = t2[0]+'T'+t2[1][:-3]
@@ -550,7 +601,8 @@ class QWGUI(Frame):
 		if self.momenttensors == True:
 
 			#plot the moment tensors and redraw
-			self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,mt_width=3,radius=10,angle_step=40,llat=SWlat,ulat=NElat,llon=SWlon,ulon=NElon)
+			self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,mt_width=3,radius=self.mtradius,angle_step=40,llat=SWlat,ulat=NElat,llon=SWlon,ulon=NElon)
+			Browse.updatedata(xs,ys,urls,self.mtradius)
 
 		else:
 			#only plotting events, so continue
@@ -579,23 +631,6 @@ class QWGUI(Frame):
 
 		'''Display some useful information on the current map'''
 
-
-	def getcatalogglobe(self):
-
-		'''Get earthquake catalog according to the user's input'''
-
-		t2 = str(datetime.datetime.today()).split(' ') #Current time
-		t2 = t2[0]+'T'+t2[1][:-3]
-
-		t1 = UTCDateTime("1970-01-01T00:00:00.000")
-		t2 = UTCDateTime(t2)
-
-		self.catalog = quaketools.get_cat(data_center='USGS',includeallorigins=True,starttime=t1,endtime=t2,minmagnitude=8)
-		self.quakes, self.mts, self.events, self.qblasts = quaketools.cat2list(self.catalog)
-		#quaketools.plot_mt(self.quakes,self.mts,self.events)
-
-		#print self.quakes, self.mts
-
 	def SaveasPDF(self):
 		'''Saves the current frame as a .pdf file'''
 
@@ -609,17 +644,37 @@ class QWGUI(Frame):
 
 		'''Returns the coordinates of user defined zoom box'''
 
-		boxcoordsNE = self.userentries['Northeast_box'].get()
-		boxcoordsSW = self.userentries['Southwest_box'].get()
+		#first try to get the coordinates of a zoom region:
+		blats,blons = Browse.returnboxcoords()
 
-		try:
-			NElon = float(boxcoordsNE.split('/')[0])
-			NElat = float(boxcoordsNE.split('/')[1])
-			SWlon = float(boxcoordsSW.split('/')[0])
-			SWlat = float(boxcoordsSW.split('/')[1])
+		if blats:
+			SWlon = blons[0]
+			NElon = blons[2]
+			SWlat = blats[0]
+			NElat = blats[1]
+
+			if NElat < SWlat:
+				tmp = NElat.copy()
+				NElat = SWlat
+				SWlat = tmp
+			if NElon < SWlon:
+				tmp = NElon.copy()
+				NElon = SWlon
+				SWlon = tmp
+
 			return NElat,NElon,SWlat,SWlon
-		except:
-			return None
+		else:
+			boxcoordsNE = self.userentries['Northeast_box'].get()
+			boxcoordsSW = self.userentries['Southwest_box'].get()
+
+			try:
+				NElon = float(boxcoordsNE.split('/')[0])
+				NElat = float(boxcoordsNE.split('/')[1])
+				SWlon = float(boxcoordsSW.split('/')[0])
+				SWlat = float(boxcoordsSW.split('/')[1])
+				return NElat,NElon,SWlat,SWlon
+			except:
+				return None
 
 
 
