@@ -70,7 +70,7 @@ class QWGUI(Frame):
 
 
 		#Various default settings
-		self.momenttensors = False #display moment tensors where possible
+		self.momenttensors = True #display moment tensors where possible
 		self.quakesplotted = None
 		self.MTs = None
 
@@ -551,6 +551,8 @@ class QWGUI(Frame):
 		submenu3 = Menu(filemenu)
 		submenu3.add_command(label='Save current frame',command=self.SaveasPDF)
 		submenu3.add_command(label='Pretty map (may take a long time to load!)',command=self.PrettyMap)
+		submenu3.add_command(label='Display moment tensors',command=self.setMTs)
+		submenu3.add_command(label='Display events only',command=self.setevents)
 		filemenu.add_cascade(label='Other options',menu=submenu3) #add the drop down menu to the menu bar 
 
 		menubar.add_cascade(label="Options",menu=filemenu)
@@ -595,8 +597,8 @@ class QWGUI(Frame):
 
 		if self.momenttensors == True:
 
+			#self.quakesplotted = quaketools.plot_events(self.map,self.a,self.quakes)
 			self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,mt_width=3,radius=self.mtradius,angle_step=30)
-
 			Browse.updatedata(xs,ys,urls,self.mtradius)
 			#print xs,ys,urls
 
@@ -625,6 +627,7 @@ class QWGUI(Frame):
 		if self.momenttensors == True:
 
 			#plot the moment tensors and redraw
+			#self.quakesplotted = quaketools.plot_events(self.map,self.a,self.quakes)
 			self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,mt_width=3,radius=self.mtradius,angle_step=40,llat=SWlat,ulat=NElat,llon=SWlon,ulon=NElon)
 			Browse.updatedata(xs,ys,urls,self.mtradius)
 
@@ -654,6 +657,15 @@ class QWGUI(Frame):
 	def PrettyMap(self):
 
 		'''Display some useful information on the current map'''
+
+	def setMTs(self):
+
+		self.momenttensors = True
+
+	def setevents(self):
+
+		self.momenttensors = None
+
 
 	def SaveasPDF(self):
 		'''Saves the current frame as a .pdf file'''

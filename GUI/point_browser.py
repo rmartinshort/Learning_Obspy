@@ -61,6 +61,7 @@ class PointBrowser:
         xevent,yevent = self.mapobj(boxlons,boxlats)
 
         self.box = self.mapobj.plot(xevent,yevent,'r-',linewidth=1,alpha=0.9)
+        print self.box
         self.canvasobj.draw()
 
     def releasepick(self,event):
@@ -96,6 +97,10 @@ class PointBrowser:
       lon = event.xdata
       lat = event.ydata
 
+      self.startlon = lon
+      self.startlat = lat
+      self.dragging = True
+
       try:
 
         if self.xs.any():
@@ -111,19 +116,11 @@ class PointBrowser:
             self.lastind = indmin
             self.update()
 
-        else:
-
-          #Define the start coordinate of the drag box
-          self.startlon = lon
-          self.startlat = lat
-          self.dragging = True
-
       except:
 
-        #Define the start coordinate of the drag box
-        self.startlon = lon
-        self.startlat = lat
-        self.dragging = True
+        print 'Currently no xs vector'
+
+
 
 
 
