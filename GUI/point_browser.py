@@ -51,10 +51,9 @@ class PointBrowser:
 
       if self.dragging:
 
-        print 'in motion!'
+        print 'Dragging!'
 
         if self.box:
-          print self.box
           self.box[0].remove()
 
         boxlats = [self.startlat,lat,lat,self.startlat,self.startlat]
@@ -90,25 +89,27 @@ class PointBrowser:
 
     def onpick(self, event):
 
-       '''define what happens when the user presses the cursor'''
+      '''define what happens when the user presses the cursor'''
 
-       # the click locations
+      # the click locations
 
-       lon = event.xdata
-       lat = event.ydata
+      lon = event.xdata
+      lat = event.ydata
 
-       if self.xs.any():
+      try:
 
-         #determine distances from the click point to each of the moment tensors
-        distances = np.hypot(lon-self.xs, lat-self.ys)
+        if self.xs.any():
 
-        #determine index of the nearest moment tensor
-        indmin = distances.argmin()
+          #determine distances from the click point to each of the moment tensors
+          distances = np.hypot(lon-self.xs, lat-self.ys)
 
-        if distances[indmin] < self.mtsize:
+          #determine index of the nearest moment tensor
+          indmin = distances.argmin()
 
-          self.lastind = indmin
-          self.update()
+          if distances[indmin] < self.mtsize:
+
+            self.lastind = indmin
+            self.update()
 
         else:
 
@@ -116,6 +117,15 @@ class PointBrowser:
           self.startlon = lon
           self.startlat = lat
           self.dragging = True
+
+      except:
+
+        #Define the start coordinate of the drag box
+        self.startlon = lon
+        self.startlat = lat
+        self.dragging = True
+
+
 
 
 

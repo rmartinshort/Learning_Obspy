@@ -70,7 +70,7 @@ class QWGUI(Frame):
 
 
 		#Various default settings
-		self.momenttensors = True #display moment tensors where possible
+		self.momenttensors = False #display moment tensors where possible
 		self.quakesplotted = None
 		self.MTs = None
 
@@ -201,20 +201,23 @@ class QWGUI(Frame):
 		self.userentries['evttime'] = Evttime
 
 		Button(self, text='Set',pady=1,padx=1,command=self.setquakesmanual).grid(row=14,column=11,sticky=W+S+E+N,columnspan=1)
-		Button(self, text='Reset',pady=1,padx=1,command=self.resetmap).grid(row=14,column=12,sticky=W+S+E+N,columnspan=1)
+		Button(self, text='Reset',pady=1,padx=1,command=self.removemapobjs).grid(row=14,column=12,sticky=W+S+E+N,columnspan=1)
 
         #Set up the label showing when the datasets are refreshed: the current time goes into that label
 		self.timer = StringVar()
 		Label(self,textvariable=self.timer,bg='azure',height=1,pady=1,padx=1,font='Helvetica 10 bold').grid(row=0,column=0,columnspan=4,sticky=W+E+S+N)
-		self.timer.set(str(time.asctime()))
+		self.timer.set('Updated %s' %str(time.asctime()))
+
+		self.quakeinfo = StringVar()
+		Label(self,textvariable=self.quakeinfo,bg='azure',height=1,padx=1,pady=1,font='Helvetica 10 bold').grid(row=0,column=8,columnspan=4,sticky=W+E+S+N)
+		self.quakeinfo.set('Displaying: M%s to M%s' %(self.minmag,self.maxmag))
 
 		Quitter(self).grid(row=0,column=13,sticky=E)
 
 	def SetZoomMap(self,lon1,lon2,lat1,lat2):
 
-		'''Zoom into map'''
+		'''Function that handles the zoom in map creation'''
 
-		#try:
 
 		self.a.clear()
 
@@ -223,15 +226,19 @@ class QWGUI(Frame):
 		self.quakesplotted = None
 
 		#scale the longitude and latiude grid increments
-		latinc = int((max(lat1,lat2)-min(lat1,lat2))/6)
-		loninc = int(abs((lon2-lon1)/6))
+		latinc = (max(lat1,lat2)-min(lat1,lat2))/5
+		loninc = abs((lon2-lon1)/4)
 		lon0 = int(abs(lon2)-abs(lon1))/2
 		lat0 = int((lat2-lat1)/2)
 
-		if abs(lat2-lat1) < 6.0:
+		#choose the resolution: high resolition maps take AGES to load, however
+
+		if 2.0 < abs(lat2-lat1) < 6.0:
 			res = 'i'
-		elif abs(lat2-lat1) < 2.0:
+		elif 0.1 < abs(lat2-lat1) < 1.0:
 			res = 'h'
+		elif 0 < abs(lat2-lat1) < 0.1:
+			res = 'f'
 		else:
 			res = 'l'
 
@@ -239,17 +246,19 @@ class QWGUI(Frame):
 		print 'Lower left lon: %g' %lon1
 		print 'Upper right lon: %g' %lon2
 		print 'lower left lat: %g' %lat1
-		print 'upper right lat: %g' %lat2 
+		print 'upper right lat: %g' %lat2
+		print 'resolution = %s' %res
 
 
 		self.map = Basemap(ax=self.a,lat_0=lat0,lon_0=lon0,resolution=res,llcrnrlon=lon1,llcrnrlat=lat1,urcrnrlon=lon2,urcrnrlat=lat2)
 		self.map.drawparallels(np.arange(lat1,lat2,latinc),labels=[1,1,0,0],linewidth=0.5,fontsize=4)
 		self.map.drawmeridians(np.arange(lon1,lon2,loninc),labels=[0,0,0,1],linewidth=0.5,fontsize=4)
+
 		self.map.fillcontinents()
 		self.map.drawcountries()
 
 		#redraw the earthquakes, if they exist (they should always exist)
-		#keeps the catalog object thats already been saved in memory and just replots the events (unless we we moment tensors)
+		#keeps the catalog object thats already been saved in memory and just replots the events (unless we want moment tensors)
 
 		if self.momenttensors == True:
 
@@ -259,7 +268,6 @@ class QWGUI(Frame):
 		else: 
 
 			quaketools.plot_events(self.map,self.a,self.quakes,llat=lat1,ulat=lat2,llon=lon1,ulon=lon2,dist_bt=100)
-
 
 
 		#self.map = Basemap(ax=self.a,projection='merc',llcrnrlat=lat1,urcrnrlat=lat2,llcrnrlon=lon1,urcrnrlon=lon2,lat_ts=true_scale_lat,resolution='l')
@@ -273,23 +281,24 @@ class QWGUI(Frame):
 
 	def zoomin(self):
 
-		NElat,NElon,SWlat,SWlon = self.GetBoxCoors()
+		'''Choose how to zoom - using a draw-on box (default) or a user-defined box'''
+
+		try:
+			NElat,NElon,SWlat,SWlon = self.GetBoxCoors()
+		except:
+			NElat = None
 
 		if NElat:
 
-			try:
-				print SWlon,SWlat,NElon,NElat
-				self.SetZoomMap(SWlon,NElon,SWlat,NElat)
-			except:
-				print 'Something went wrong with the box coodinates: could be outside the domain!'
+			self.SetZoomMap(SWlon,NElon,SWlat,NElat)
 
 			#reset the box coordinates to 'none' so we can draw another box 
 			Browse.updateboxcoords()
 
+		else:
+
 			boxcoordsNE = self.userentries['Northeast_box'].get()
 			boxcoordsSW = self.userentries['Southwest_box'].get()
-
-		else:
 
 			try:
 				NElon = float(boxcoordsNE.split('/')[0])
@@ -303,7 +312,7 @@ class QWGUI(Frame):
 
 	def drawbox(self):
 
-		print 'Draw box'
+		'''Draw a box on the map according to the user's choice of coordinates'''
 
 		boxcoordsNE = self.userentries['Northeast_box'].get()
 		boxcoordsSW = self.userentries['Southwest_box'].get()
@@ -332,6 +341,10 @@ class QWGUI(Frame):
 		self.a.clear()
 		self.MTs = None
 		self.quakesplotted = None
+
+		#reset defaults
+		self.minmag = 4.5
+		self.maxmag = 10.0
 		Browse.updateboxcoords()
 
 		#Return to the default quake map
@@ -339,6 +352,9 @@ class QWGUI(Frame):
 		self.worldquakes()
 
 	def plotprofile(self):
+
+		'''Draw a profile on the map according to the user's choice of coordinates. Will be extended to draw a depth
+		cross section along the profile line, showing the depth distribition of the seismicity on the map'''
 
 		linecoordsstart = self.userentries['profile_start'].get()
 		linecoordsend = self.userentries['profile_end'].get()
@@ -364,7 +380,7 @@ class QWGUI(Frame):
 		'''Fetch an earthquake catalog corresponding to the user's choice'''
 
 		#Reset the map
-		self.resetmap()
+		self.removemapobjs()
 
 		starttime = self.userentries['evttime'].get()
 
@@ -434,10 +450,18 @@ class QWGUI(Frame):
 			else:
 				#only plotting events, so continue
 				self.quakesplotted = quaketools.plot_events(self.map,self.a,self.quakes)
-		
+
+
+		#update display information
+		self.minmag = mag1
+		self.maxmag = mag2
+		self.quakeinfo.set('Displaying: M%s to M%s' %(self.minmag,self.maxmag))	
+
 		self.canvas.draw()
 
-	def resetmap(self):
+	def removemapobjs(self):
+
+		'''Remove all objects painted on top of the map, but does not redraw the map itself'''
 
 		Browse.updatedata()
 		Browse.updateboxcoords()
@@ -451,12 +475,10 @@ class QWGUI(Frame):
 		if self.MTs != None:
 
 			for e1 in self.MTs:
-				print e1
 				e1.remove()
 
 			for e2 in self.mtlines:
 				if e2 is not None:
-					print e2
 					e2[0].remove()
 
 			self.quakedots.remove()
@@ -486,6 +508,7 @@ class QWGUI(Frame):
 
 
 	def refreshloop(self):
+
 		'''Refresh the map data accordingly'''
 
 		print 'Refreshing quake dataset'
@@ -498,6 +521,7 @@ class QWGUI(Frame):
 
 
 	def Createmenubar(self,parent): 
+
 		'''Create the drop down menu: allows user to add data layers to the Alaska'''
 
 		menubar = Menu(self)
