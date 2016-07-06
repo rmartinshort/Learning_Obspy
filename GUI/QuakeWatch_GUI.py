@@ -147,6 +147,15 @@ class QWGUI(Frame):
 		self.map.drawmeridians(np.arange(-180,180,30),labels=[0,0,0,1],linewidth=0.5,fontsize=4)
 		self.canvas.draw()
 
+		#--------------------------
+		#Default map boundaries
+		#--------------------------
+		self.minlon = -179.9
+		self.maxlon = 179.9
+		self.minlat = -89
+		self.maxlat = 89
+		#--------------------------
+
 	def SetElements(self):
 
 		'''Sets up the the GUI elements'''
@@ -276,8 +285,14 @@ class QWGUI(Frame):
 		#self.map.drawlsmask(land_color="#ddaa66", ocean_color="#7777ff",resolution='i')
 		self.canvas.draw()
 
-		#except:
-		#	print 'Unable to zoom at this time!'
+		#--------------------------
+		#Set map boundaries
+		#--------------------------
+		self.minlat = lat1
+		self.maxlat = lat2
+		self.minlon = lon1
+		self.maxlon = lon2
+
 
 	def zoomin(self):
 
@@ -334,9 +349,12 @@ class QWGUI(Frame):
 		self.canvas.draw()
 
 
-	def resetzoom(self):
+	def resetzoom(self,resettensors=False):
 
 		'''Reset the zoom to the global map'''
+
+		if resettensors == True:
+			self.momenttensors = True
 
 		self.a.clear()
 		self.MTs = None
@@ -349,7 +367,7 @@ class QWGUI(Frame):
 
 		#Return to the default quake map
 		self.SetStartMap()
-		self.worldquakes()
+		self.Autoupdate()
 
 	def plotprofile(self):
 
@@ -418,39 +436,25 @@ class QWGUI(Frame):
 			self.minlat = SWlat
 			self.maxlat = NElat
 
-			self.catalog = quaketools.get_cat(data_center=self.datacenter,includeallorigins=True,starttime=t1,endtime=t2,minmagnitude=mag1,maxmagnitude=mag2,maxlongitude=NElon,minlongitude=SWlon,maxlatitude=NElat,minlatitude=SWlat)
-			self.quakes, self.mts, self.events, self.qblasts = quaketools.cat2list(self.catalog)
-
-			if self.momenttensors == True:
-
-				#plot the moment tensors and redraw
-				self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,llat=SWlat,ulat=NElat,llon=SWlon,ulon=NElon,dist_bt=200,radius=self.mtradius,mt_width=1)
-				Browse.updatedata(xs,ys,urls,self.mtradius)
-
-			else:
-				#only plotting events, so continue
-				self.quakesplotted = quaketools.plot_events(self.map,self.a,self.quakes,llat=SWlat,ulat=NElat,llon=SWlon,ulon=NElon,dist_bt=100)
-		
 		except:
 
-			#Case where the user has not entered the correct zoom coordinates or none at all
+			print 'No user defined coordinates found - using coordinates stored in memory!'
 
-			print 'Assuming global map'
+		#get the earthquake catalog just for the region of interest (may be a zoom box)
 
-			self.catalog = quaketools.get_cat(data_center=self.datacenter,includeallorigins=True,starttime=t1,endtime=t2,minmagnitude=mag1,maxmagnitude=mag2)
+		self.catalog = quaketools.get_cat(data_center=self.datacenter,includeallorigins=True,starttime=t1,endtime=t2,minmagnitude=mag1,maxmagnitude=mag2,maxlongitude=self.maxlon,minlongitude=self.minlon,maxlatitude=self.maxlat,minlatitude=self.minlat)
+		self.quakes, self.mts, self.events, self.qblasts = quaketools.cat2list(self.catalog)
 
-			self.quakes, self.mts, self.events, self.qblasts = quaketools.cat2list(self.catalog)
+		if self.momenttensors == True:
 
-			if self.momenttensors == True:
+			#plot the moment tensors and redraw
+			self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,llat=self.minlat,ulat=self.maxlat,llon=self.minlon,ulon=self.maxlon,dist_bt=200,radius=self.mtradius,mt_width=1)
+			Browse.updatedata(xs,ys,urls,self.mtradius)
 
-				#plot the moment tensors and redraw
-				self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events)
-				Browse.updatedata(xs,ys,urls,self.mtradius)
-
-			else:
-				#only plotting events, so continue
-				self.quakesplotted = quaketools.plot_events(self.map,self.a,self.quakes)
-
+		else:
+			#only plotting events, so continue
+			self.quakesplotted = quaketools.plot_events(self.map,self.a,self.quakes,llat=self.minlat,ulat=self.maxlat,llon=self.minlon,ulon=self.maxlon,dist_bt=100)
+		
 
 		#update display information
 		self.minmag = mag1
@@ -550,7 +554,7 @@ class QWGUI(Frame):
 
 		submenu3 = Menu(filemenu)
 		submenu3.add_command(label='Save current frame',command=self.SaveasPDF)
-		submenu3.add_command(label='Pretty map (may take a long time to load!)',command=self.PrettyMap)
+		submenu3.add_command(label='Pretty map (may take a long time to load!)',command=lambda: self.PrettyMap(self.minlat,self.maxlat,self.minlon,self.maxlon))
 		submenu3.add_command(label='Display moment tensors',command=self.setMTs)
 		submenu3.add_command(label='Display events only',command=self.setevents)
 		filemenu.add_cascade(label='Other options',menu=submenu3) #add the drop down menu to the menu bar 
@@ -597,7 +601,7 @@ class QWGUI(Frame):
 
 		if self.momenttensors == True:
 
-			#self.quakesplotted = quaketools.plot_events(self.map,self.a,self.quakes)
+			self.quakesplotted = quaketools.plot_events(self.map,self.a,self.quakes)
 			self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,mt_width=3,radius=self.mtradius,angle_step=30)
 			Browse.updatedata(xs,ys,urls,self.mtradius)
 			#print xs,ys,urls
@@ -621,14 +625,20 @@ class QWGUI(Frame):
 		t2 = self.now
 		t1 = t2-self.starttime
 
-		self.catalog = quaketools.get_cat(data_center=self.datacenter,includeallorigins=True,starttime=t1,endtime=t2,minmagnitude=self.minmag,maxmagnitude=self.maxmag,maxlongitude=self.maxlon,minlongitude=self.minlon,maxlatitude=self.maxlat,minlatitude=self.minlon)
+
+		print t2,t1,self.minlon,self.maxlon,self.minlat,self.maxlat,self.minmag,self.maxmag
+
+		#currently a problem - need to only get quakes for the region that we are displaying
+
+
+		self.catalog = quaketools.get_cat(data_center=self.datacenter,includeallorigins=True,starttime=t1,endtime=t2,minmagnitude=self.minmag,maxmagnitude=self.maxmag,maxlatitude=self.maxlat,minlatitude=self.minlat) #maxlongitude=self.maxlon,minlongitude=self.minlon,maxlatitude=self.maxlat,minlatitude=self.minlon)
 		self.quakes, self.mts, self.events, self.qblasts = quaketools.cat2list(self.catalog)
 
 		if self.momenttensors == True:
 
 			#plot the moment tensors and redraw
 			#self.quakesplotted = quaketools.plot_events(self.map,self.a,self.quakes)
-			self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,mt_width=3,radius=self.mtradius,angle_step=40,llat=SWlat,ulat=NElat,llon=SWlon,ulon=NElon)
+			self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,mt_width=3,radius=self.mtradius,angle_step=40,llat=self.minlat,ulat=self.maxlat,llon=self.minlon,ulon=self.maxlon)
 			Browse.updatedata(xs,ys,urls,self.mtradius)
 
 		else:
@@ -654,18 +664,65 @@ class QWGUI(Frame):
 
 		print 'display'
 
-	def PrettyMap(self):
+	def PrettyMap(self,lat1,lat2,lon1,lon2):
 
-		'''Display some useful information on the current map'''
+		'''Display topography and street names on the current map - could be modified for various map types'''
+
+		#scale the longitude and latiude grid increments
+		latinc = (max(lat1,lat2)-min(lat1,lat2))/5
+		loninc = abs((lon2-lon1)/4)
+		lon0 = int(abs(lon2)-abs(lon1))/2
+		lat0 = int((lat2-lat1)/2)
+
+		if 2.0 < abs(lat2-lat1) < 6.0:
+			res = 'i'
+		elif 0.1 < abs(lat2-lat1) < 1.0:
+			res = 'h'
+		elif 0 < abs(lat2-lat1) < 0.1:
+			res = 'f'
+		else:
+			res = 'l'
+
+		self.a.clear()
+
+		#Map setup and quakes
+		self.map = Basemap(ax=self.a,lat_0=lat0,lon_0=lon0,resolution ='l',llcrnrlon=lon1,llcrnrlat=lat1,urcrnrlon=lon2,urcrnrlat=lat2)
+		self.map.arcgisimage(service='NatGeo_World_Map',verbose=False,xpixels=10000)
+
+		#plot some extra information
+
+		self.map.drawparallels(np.arange(lat1,lat2,latinc),labels=[1,1,0,0],linewidth=0.5,fontsize=4)
+		self.map.drawmeridians(np.arange(lon1,lon2,loninc),labels=[0,0,0,1],linewidth=0.5,fontsize=4)
+		self.map.drawcountries()
+		self.map.drawcoastlines(linewidth=0.1)
+
+		#replot the quakes
+
+		if self.momenttensors == True:
+
+			#plot the moment tensors and redraw
+			#self.quakesplotted = quaketools.plot_events(self.map,self.a,self.quakes)
+			self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,mt_width=3,radius=self.mtradius,angle_step=40,llat=lat1,ulat=lat2,llon=lon1,ulon=lon2)
+			Browse.updatedata(xs,ys,urls,self.mtradius)
+
+		else:
+			#only plotting events, so continue
+			self.quakesplotted = quaketools.plot_events(self.map,self.a,self.quakes)
+
+		self.canvas.draw()
+
 
 	def setMTs(self):
 
 		self.momenttensors = True
+		self.removemapobjs()
+		self.Autoupdate()
 
 	def setevents(self):
 
 		self.momenttensors = None
-
+		self.removemapobjs()
+		self.Autoupdate()
 
 	def SaveasPDF(self):
 		'''Saves the current frame as a .pdf file'''

@@ -61,7 +61,6 @@ class PointBrowser:
         xevent,yevent = self.mapobj(boxlons,boxlats)
 
         self.box = self.mapobj.plot(xevent,yevent,'r-',linewidth=1,alpha=0.9)
-        print self.box
         self.canvasobj.draw()
 
     def releasepick(self,event):
