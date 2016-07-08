@@ -823,7 +823,7 @@ def plot_mt(mapobj,axisobj,figobj,earthquakes, mt, event_id, location = None, M_
 def plot_events(mapobj,axisobj,catalog,label= None, color='depth', pretty = False, colormap=None, 
              llat = -90, ulat = 90, llon = -180, ulon = 180, figsize=(16,24), 
              par_range = (-90., 120., 30.), mer_range = (0., 360., 60.),
-             showHour = False, M_above = 0.0, location = 'World', **kwargs):
+             showHour = False, M_above = 0.0, location = 'World', min_size=1, max_size=12,**kwargs):
 
     '''Simplified version of plot_event'''
 
@@ -849,8 +849,6 @@ def plot_events(mapobj,axisobj,catalog,label= None, color='depth', pretty = Fals
 
     x, y = mapobj(lons, lats)
 
-    min_size = 1
-    max_size = 12
     min_mag = 0
     max_mag = 10
     if len(mags) > 1:
@@ -878,7 +876,27 @@ def plot_events(mapobj,axisobj,catalog,label= None, color='depth', pretty = Fals
     #                    min_color + color_range * 0.75, max_color]])
 
     return quakes
-    
+
+def determinemtsize(minlon,maxlon,minlat,maxlat):
+
+    '''Determine the size of the moment tensor beachball and event circle to plot based on the map boundary'''
+
+    mt_width = round(((maxlat-minlat)/60),3)
+    mt_rad = round(((maxlat-minlat)/15),1)
+
+    if mt_width < 0.01:
+        mt_width = 0.01
+
+    min_dot = round(((maxlat-minlat)/200),1)
+    max_dot = round(((maxlat-minlat)/150),1)
+
+    min_quake = round(((maxlat-minlat)/120),1)
+    max_quake = round(((maxlat-minlat)/100),1)
+
+    return mt_width,mt_rad,min_dot,max_dot,min_quake,max_quake
+
+
+
 
 def plot_event(catalog, projection='cyl', resolution='l',
              continent_fill_color='0.9', water_fill_color='white',
