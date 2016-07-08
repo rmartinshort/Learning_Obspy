@@ -897,6 +897,38 @@ def determinemtsize(minlon,maxlon,minlat,maxlat):
 
 
 
+def read_faults(input_file):
+    '''
+    Read in the faults file to plot the faults
+    '''
+    count = 0
+    faults = {}
+    lats = []
+    lons = []
+    for line in open(input_file):
+        # Check for empty/commented lines
+        if not line or line.startswith('>'):
+            # If 1st one: new block
+            if count == 0:
+                pass
+            count += 1
+        # Non empty line: add line in current(last) block
+            faults[count] = [lons, lats]
+            lats = []
+            lons = []
+            
+        else:
+            try:
+                lon = float(line.split()[1])
+                lat = float(line.split()[0])
+                lats.append(lat)
+                lons.append(lon)
+            except:
+                print 'error in reading coordinate: skipped'            
+            
+    return faults
+
+
 
 def plot_event(catalog, projection='cyl', resolution='l',
              continent_fill_color='0.9', water_fill_color='white',

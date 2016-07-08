@@ -17,19 +17,17 @@ import cat_analysis as quaketools
 from obspy import UTCDateTime
 import tkFileDialog
 
-#Import obspy modules for fetching event data 
+#Import quit dialog box options
 from quitter import Quitter
 
 #Allow matplotlib to be used within a tkinter canvas
-#matplotlib.use("macosx")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap, cm 
 
-#Control matplotlib font size
+#Control matplotlib font size so that the map labels look OK
 matplotlib.rcParams.update({'font.size': 6})
-
 
 #This class handles the mouse-click options
 Browse = PointBrowser()
@@ -106,8 +104,19 @@ class QWGUI(Frame):
 		#Call function to download some earhquakes and ... 
 
 		#Initial meap setup and quakes
+		print 'Drawing map....'
 		self.map = Basemap(ax=self.a,lat_0=38,lon_0=-122.0,resolution ='l',llcrnrlon=-179.9,llcrnrlat=-89,urcrnrlon=179.9,urcrnrlat=89)
 		self.map.arcgisimage(service='NatGeo_World_Map',verbose=False,xpixels=10000)
+
+		#plot the plate boundaries
+		print 'Drawing plate boundaries.....'
+		self.faults = quaketools.read_faults('usgs_plates.txt.gmtdat')
+		for i in self.faults:
+		    faults_lons = self.faults[i][0]
+		    faults_lats = self.faults[i][1]
+		    x,y = self.map(faults_lons, faults_lats)
+		    self.map.plot(x,y,'b')
+
 		self.map.drawparallels(np.arange(-90,90,30),labels=[1,1,0,0],linewidth=0.5,fontsize=4)
 		self.map.drawmeridians(np.arange(-180,180,30),labels=[0,0,0,1],linewidth=0.5,fontsize=4)
 
@@ -142,6 +151,13 @@ class QWGUI(Frame):
 
 		#placeholder - makes things run much faster for debugging
 		self.map.fillcontinents()
+
+		#plot the plate boundaries
+		for i in self.faults:
+		    faults_lons = self.faults[i][0]
+		    faults_lats = self.faults[i][1]
+		    x,y = self.map(faults_lons, faults_lats)
+		    self.map.plot(x,y,'b')
 		
 		self.map.drawparallels(np.arange(-90,90,30),labels=[1,1,0,0],linewidth=0.5,fontsize=4)
 		self.map.drawmeridians(np.arange(-180,180,30),labels=[0,0,0,1],linewidth=0.5,fontsize=4)
@@ -274,6 +290,13 @@ class QWGUI(Frame):
 		self.map.fillcontinents()
 		self.map.drawcountries()
 		self.map.drawstates()
+
+		#plot the plate boundaries
+		for i in self.faults:
+		    faults_lons = self.faults[i][0]
+		    faults_lats = self.faults[i][1]
+		    x,y = self.map(faults_lons, faults_lats)
+		    self.map.plot(x,y,'b')
 
 		#Determine the new sizes of the map objects, so that they don't crowd the map
 		mt_width,mt_rad,min_dot,max_dot,min_quake,max_quake = quaketools.determinemtsize(self.minlon,self.maxlon,self.minlat,self.maxlat)
