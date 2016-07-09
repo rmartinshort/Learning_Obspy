@@ -300,6 +300,7 @@ class QWGUI(Frame):
 
 		#Determine the new sizes of the map objects, so that they don't crowd the map
 		mt_width,mt_rad,min_dot,max_dot,min_quake,max_quake = quaketools.determinemtsize(self.minlon,self.maxlon,self.minlat,self.maxlat)
+		print min_quake,max_quake
 
 		print 'Mt width and radius are as follows:'
 		print mt_width
@@ -518,19 +519,6 @@ class QWGUI(Frame):
 
 			print 'Default reset function'
 
-			# self.a.clear()
-
-			# self.map = Basemap(ax=self.a,lat_0=38,lon_0=-122.0,resolution ='l',llcrnrlon=-179.9,llcrnrlat=-89,urcrnrlon=179.9,urcrnrlat=89)
-			# self.map.fillcontinents()
-
-			# #self.map.drawparallels(np.arange(-90,90,30),labels=[1,0,0,0])
-			# #self.map.drawmeridians(np.arange(self.map.lonmin,self.map.lonmax+30,60),labels=[0,0,0,1])
-
-			# self.canvas = FigureCanvasTkAgg(self.f, self)
-			# self.canvas.mpl_connect('button_press_event',Browse.onpick)
-			# self.canvas.show()
-			# self.canvas.get_tk_widget().grid(row=1,sticky=W+S+N+E,columnspan=14,rowspan=10)
-
 
 	def refreshloop(self):
 
@@ -622,6 +610,10 @@ class QWGUI(Frame):
 		t2 = self.now
 		t1 = t2-self.starttime
 
+		#Determine the new sizes of the map objects, so that they don't crowd the map
+		mt_width,mt_rad,min_dot,max_dot,min_quake,max_quake = quaketools.determinemtsize(self.minlon,self.maxlon,self.minlat,self.maxlat)
+		print min_quake,max_quake
+
 		self.catalog = quaketools.get_cat(data_center=self.datacenter,includeallorigins=True,starttime=t1,endtime=t2,minmagnitude=self.minmag,maxmagnitude=self.maxmag)
 		self.quakes, self.mts, self.events, self.qblasts = quaketools.cat2list(self.catalog)
 
@@ -634,7 +626,7 @@ class QWGUI(Frame):
 
 		else:
 			#only plotting events, so continue
-			self.quakesplotted = quaketools.plot_events(self.map,self.a,self.quakes)
+			self.quakesplotted = quaketools.plot_events(self.map,self.a,self.quakes,min_size=min_quake,max_side=max_quake)
 		
 		self.canvas.draw()
 
@@ -642,7 +634,7 @@ class QWGUI(Frame):
 
 		'''For use with the auto-updater - get only the quakes within the map region and update'''
 
-		print 'Updating catalog!'
+		print 'Autoupdating catalog!'
 
 		t2 = str(datetime.datetime.today()).split(' ') #Update the time
 		t2 = t2[0]+'T'+t2[1][:-3]
@@ -651,13 +643,13 @@ class QWGUI(Frame):
 		t2 = self.now
 		t1 = t2-self.starttime
 
-
-		print t2,t1,self.minlon,self.maxlon,self.minlat,self.maxlat,self.minmag,self.maxmag
+		#Determine the new sizes of the map objects, so that they don't crowd the map
+		mt_width,mt_rad,min_dot,max_dot,min_quake,max_quake = quaketools.determinemtsize(self.minlon,self.maxlon,self.minlat,self.maxlat)
+		print min_quake,max_quake
 
 		#currently a problem - need to only get quakes for the region that we are displaying
 
-
-		self.catalog = quaketools.get_cat(data_center=self.datacenter,includeallorigins=True,starttime=t1,endtime=t2,minmagnitude=self.minmag,maxmagnitude=self.maxmag,maxlatitude=self.maxlat,minlatitude=self.minlat) #maxlongitude=self.maxlon,minlongitude=self.minlon,maxlatitude=self.maxlat,minlatitude=self.minlon)
+		self.catalog = quaketools.get_cat(data_center=self.datacenter,includeallorigins=True,starttime=t1,endtime=t2,minmagnitude=self.minmag,maxmagnitude=self.maxmag,maxlatitude=self.maxlat,minlatitude=self.minlat,minlongitude=self.minlon,maxlongitude=self.maxlon) #maxlongitude=self.maxlon,minlongitude=self.minlon,maxlatitude=self.maxlat,minlatitude=self.minlon)
 		self.quakes, self.mts, self.events, self.qblasts = quaketools.cat2list(self.catalog)
 
 		if self.momenttensors == True:

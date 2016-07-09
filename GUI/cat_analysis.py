@@ -823,7 +823,7 @@ def plot_mt(mapobj,axisobj,figobj,earthquakes, mt, event_id, location = None, M_
 def plot_events(mapobj,axisobj,catalog,label= None, color='depth', pretty = False, colormap=None, 
              llat = -90, ulat = 90, llon = -180, ulon = 180, figsize=(16,24), 
              par_range = (-90., 120., 30.), mer_range = (0., 360., 60.),
-             showHour = False, M_above = 0.0, location = 'World', min_size=1, max_size=12,**kwargs):
+             showHour = False, M_above = 0.0, location = 'World', min_size=1, max_size=8,**kwargs):
 
     '''Simplified version of plot_event'''
 
@@ -890,8 +890,8 @@ def determinemtsize(minlon,maxlon,minlat,maxlat):
     min_dot = round(((maxlat-minlat)/200),1)
     max_dot = round(((maxlat-minlat)/150),1)
 
-    min_quake = round(((maxlat-minlat)/120),1)
-    max_quake = round(((maxlat-minlat)/100),1)
+    min_quake = round(((maxlat-minlat)/15),2)
+    max_quake = round(((maxlat-minlat)/5),2)
 
     return mt_width,mt_rad,min_dot,max_dot,min_quake,max_quake
 
@@ -899,7 +899,7 @@ def determinemtsize(minlon,maxlon,minlat,maxlat):
 
 def read_faults(input_file):
     '''
-    Read in the faults file to plot the faults
+    Read in the faults file to plot the faults - used for adding tectonic plate boundaries
     '''
     count = 0
     faults = {}
