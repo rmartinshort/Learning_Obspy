@@ -220,15 +220,18 @@ def plot_cum(earthquakes, freq = '1D', figsize = (12,8)):
     L = milliseonds
     U = microseconds
     '''
+
+    fig = plt.figure(facecolor='white')
+    ax1 = fig.add_subplot(111)
     df = eq2df(earthquakes)
     rs = df['mag'].resample(freq,how='count')
     rs.cumsum().plot(figsize=figsize)
-    
-    plt.xlabel('Time')
-    plt.ylabel('Number of Earthquakes')
-    plt.show()
 
-def plot_seimicity_rate(earthquakes, time = 'hour', figsize = (12,8)):
+    ax1.set_xlabel('Time')
+    ax1.set_ylabel('Number of Earthquakes')
+    fig.show()
+
+def plot_seimicity_rate(earthquakes, time = 'hour', figsize = (8,8)):
     '''
     Function get from Thomas Lecocq
     http://www.geophysique.be/2013/09/25/seismicity-rate-using-obspy-and-pandas/
@@ -253,6 +256,8 @@ def plot_seimicity_rate(earthquakes, time = 'hour', figsize = (12,8)):
         time_format = '%y-%m-%d, %H %p'
     
     df = eq2df(earthquakes)
+
+    #Arrange quakes by their magnitude and color appropiately
     
     bins = np.arange(m_range[0], m_range[1])
     labels = np.array(["[%i:%i)"%(i,i+1) for i in bins])
@@ -266,9 +271,11 @@ def plot_seimicity_rate(earthquakes, time = 'hour', figsize = (12,8)):
     rate = pd.crosstab(df.Year_Month_day, df.Magnitude_Range)
     
     rate.plot(kind='bar',stacked=True,color=colors,figsize=figsize)
-    plt.legend(bbox_to_anchor=(1.20, 1.05))
+    plt.legend(loc='best')
     plt.ylabel('Number of earthquakes')
     plt.xlabel('Date and Time')
+    plt.tight_layout()
+    plt.grid()
     plt.show()
 
 def get_event_info(catalog, M_above, llat, ulat, llon, ulon, color, label):
@@ -881,17 +888,19 @@ def determinemtsize(minlon,maxlon,minlat,maxlat):
 
     '''Determine the size of the moment tensor beachball and event circle to plot based on the map boundary'''
 
-    mt_width = round(((maxlat-minlat)/60),3)
-    mt_rad = round(((maxlat-minlat)/15),1)
+
+    mt_width = round(((maxlat-minlat)/55.0),3)
+    mt_rad = round(((maxlat-minlat)/15.0),1)
 
     if mt_width < 0.01:
+        print mt_width
         mt_width = 0.01
 
-    min_dot = round(((maxlat-minlat)/200),1)
-    max_dot = round(((maxlat-minlat)/150),1)
+    min_dot = round(((maxlat-minlat)/200.0),1)
+    max_dot = round(((maxlat-minlat)/150.0),1)
 
-    min_quake = round(((maxlat-minlat)/15),2)
-    max_quake = round(((maxlat-minlat)/5),2)
+    min_quake = round(((maxlat-minlat)/15.0),2)
+    max_quake = round(((maxlat-minlat)/5.0),2)
 
     return mt_width,mt_rad,min_dot,max_dot,min_quake,max_quake
 

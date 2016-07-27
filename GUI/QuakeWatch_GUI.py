@@ -14,6 +14,7 @@ import datetime
 from datetime import datetime as dt
 import os
 import cat_analysis as quaketools
+import quake_stats as quakestats
 from obspy import UTCDateTime
 import tkFileDialog
 
@@ -27,7 +28,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap, cm 
 
 #Control matplotlib font size so that the map labels look OK
-matplotlib.rcParams.update({'font.size': 6})
+matplotlib.rcParams.update({'font.size': 8})
 
 #This class handles the mouse-click options
 Browse = PointBrowser()
@@ -105,8 +106,9 @@ class QWGUI(Frame):
 
 		#Initial meap setup and quakes
 		print 'Drawing map....'
-		self.map = Basemap(ax=self.a,lat_0=38,lon_0=-122.0,resolution ='l',llcrnrlon=-179.9,llcrnrlat=-89,urcrnrlon=179.9,urcrnrlat=89)
-		self.map.arcgisimage(service='NatGeo_World_Map',verbose=False,xpixels=10000)
+		self.map = Basemap(ax=self.a,lat_0=38,lon_0=-122.0,resolution ='l',llcrnrlon=-179.9,llcrnrlat=-89.9,urcrnrlon=179.9,urcrnrlat=89.9)
+		self.map.fillcontinents()
+		self.map.drawcoastlines(linewidth=0.2)
 
 		#plot the plate boundaries
 		print 'Drawing plate boundaries.....'
@@ -115,7 +117,7 @@ class QWGUI(Frame):
 		    faults_lons = self.faults[i][0]
 		    faults_lats = self.faults[i][1]
 		    x,y = self.map(faults_lons, faults_lats)
-		    self.map.plot(x,y,'b')
+		    self.map.plot(x,y,'b-',linewidth=0.5)
 
 		self.map.drawparallels(np.arange(-90,90,30),labels=[1,1,0,0],linewidth=0.5,fontsize=4)
 		self.map.drawmeridians(np.arange(-180,180,30),labels=[0,0,0,1],linewidth=0.5,fontsize=4)
@@ -141,42 +143,11 @@ class QWGUI(Frame):
 		self.Createmenubar(parent)
 
 
-	def SetStartMap(self):
-
-		'''Make global pretty map. Takes a long time so only make on startup'''
-
-		self.map = Basemap(ax=self.a,lat_0=38,lon_0=-122.0,resolution ='l',llcrnrlon=-179.9,llcrnrlat=-89,urcrnrlon=179.9,urcrnrlat=89)
-		#self.map.shadedrelief()
-		#self.map.arcgisimage(service='NatGeo_World_Map',verbose=False,xpixels=10000)
-
-		#placeholder - makes things run much faster for debugging
-		self.map.fillcontinents()
-
-		#plot the plate boundaries
-		for i in self.faults:
-		    faults_lons = self.faults[i][0]
-		    faults_lats = self.faults[i][1]
-		    x,y = self.map(faults_lons, faults_lats)
-		    self.map.plot(x,y,'b')
-		
-		self.map.drawparallels(np.arange(-90,90,30),labels=[1,1,0,0],linewidth=0.5,fontsize=4)
-		self.map.drawmeridians(np.arange(-180,180,30),labels=[0,0,0,1],linewidth=0.5,fontsize=4)
-		self.canvas.draw()
-
-		#--------------------------
-		#Default map boundaries
-		#--------------------------
-		self.minlon = -179.9
-		self.maxlon = 179.9
-		self.minlat = -89
-		self.maxlat = 89
-		#--------------------------
-
 	def SetElements(self):
 
 		'''Sets up the the GUI elements'''
 
-		Label(self,text='QuakeWatch 1.0',bg='azure',height=2,pady=2,font='Helvetica 22 bold').grid(row=0,column=0,columnspan=14,sticky=W+E+S+N)
+		Label(self,text='Earthquakes',bg='azure',height=2,pady=2,font='Helvetica 22 bold').grid(row=0,column=0,columnspan=14,sticky=W+E+S+N)
 
 		#Zoom box bounds
 
@@ -239,6 +210,38 @@ class QWGUI(Frame):
 
 		Quitter(self).grid(row=0,column=13,sticky=E)
 
+	def SetStartMap(self):
+
+		'''Make global pretty map. Takes a long time so only make on startup'''
+
+		self.map = Basemap(ax=self.a,lat_0=38,lon_0=-122.0,resolution ='l',llcrnrlon=-179.9,llcrnrlat=-89,urcrnrlon=179.9,urcrnrlat=89)
+		#self.map.shadedrelief()
+		#self.map.arcgisimage(service='NatGeo_World_Map',verbose=False,xpixels=10000)
+
+		#placeholder - makes things run much faster for debugging
+		self.map.fillcontinents()
+
+		#plot the plate boundaries
+		for i in self.faults:
+		    faults_lons = self.faults[i][0]
+		    faults_lats = self.faults[i][1]
+		    x,y = self.map(faults_lons, faults_lats)
+		    self.map.plot(x,y,'b-',linewidth=0.5)
+		
+		self.map.drawparallels(np.arange(-90,90,30),labels=[1,1,0,0],linewidth=0.5,fontsize=4)
+		self.map.drawmeridians(np.arange(-180,180,30),labels=[0,0,0,1],linewidth=0.5,fontsize=4)
+		self.canvas.draw()
+
+		#--------------------------
+		#Default map boundaries
+		#--------------------------
+		self.minlon = -179.9
+		self.maxlon = 179.9
+		self.minlat = -89
+		self.maxlat = 89
+		#--------------------------
+
+
 	def SetZoomMap(self,lon1,lon2,lat1,lat2):
 
 		'''Function that handles the zoom in map creation'''
@@ -288,15 +291,16 @@ class QWGUI(Frame):
 		self.map.drawmeridians(np.arange(lon1,lon2,loninc),labels=[0,0,0,1],linewidth=0.5,fontsize=4)
 
 		self.map.fillcontinents()
-		self.map.drawcountries()
-		self.map.drawstates()
+		self.map.drawcountries(linewidth=0.2)
+		self.map.drawcoastlines(linewidth=0.2)
+		self.map.drawstates(linewidth=0.1)
 
 		#plot the plate boundaries
 		for i in self.faults:
 		    faults_lons = self.faults[i][0]
 		    faults_lats = self.faults[i][1]
 		    x,y = self.map(faults_lons, faults_lats)
-		    self.map.plot(x,y,'b')
+		    self.map.plot(x,y,'b-',linewidth=0.5)
 
 		#Determine the new sizes of the map objects, so that they don't crowd the map
 		mt_width,mt_rad,min_dot,max_dot,min_quake,max_quake = quaketools.determinemtsize(self.minlon,self.maxlon,self.minlat,self.maxlat)
@@ -377,11 +381,14 @@ class QWGUI(Frame):
 		#reset defaults
 		self.minmag = 4.5
 		self.maxmag = 10.0
+
+		#reset the display defaults
+		self.quakeinfo.set('Displaying: M%s to M%s' %(self.minmag,self.maxmag))	
 		Browse.updateboxcoords()
 
 		#Return to the default quake map
 		self.SetStartMap()
-		self.Autoupdate()
+		self.WDquakes()
 
 	def plotprofile(self):
 
@@ -407,16 +414,25 @@ class QWGUI(Frame):
 		self.map.plot(xevent,yevent,'k.')
 		self.canvas.draw()
 
-	def setquakesmanual(self):
+		print '-----------------------------------------------'
+		print 'Building depth slice'
+		print '-----------------------------------------------'
+
+		quakestats.depthslicequakes(self.quakes,self.mts,float(lons[0]),float(lats[0]),float(lons[1]),float(lats[1]))
+
+	def setquakesmanual(self,t1=None):
 
 		'''Fetch an earthquake catalog corresponding to the user's choice'''
 
 		#Reset the map
 		self.removemapobjs()
 
-		starttime = self.userentries['evttime'].get()
+		if not t1:
 
-		t1 = str(starttime)+'T00:00:00.000'
+			starttime = self.userentries['evttime'].get()
+
+			t1 = str(starttime)+'T00:00:00.000'
+
 
 		t2 = self.now
 
@@ -435,9 +451,16 @@ class QWGUI(Frame):
 			mag2 = mags.split('-')[1].strip()
 		except:
 			print 'Alert: Magnitudes not entered correctly!'
-			print 'Default magnitude range: 6-10'
-			mag1 = 6
-			mag2 = 10
+
+			if self.minmag:
+
+				mag1 = self.minmag
+				mag2 = self.maxmag
+			else:
+
+				print 'Default magnitude range: 6-10'
+				mag1 = 6
+				mag2 = 10
 
 		#get the box coordinates, if they exist
 		try:
@@ -455,14 +478,14 @@ class QWGUI(Frame):
 			print 'No user defined coordinates found - using coordinates stored in memory!'
 
 		#get the earthquake catalog just for the region of interest (may be a zoom box)
+		#Note that the earthquake statistics package uses the catalog output from this call to get_cat, so ensure to
+		#update the quake catalog before looking at the stats
 
-		#Determine the new sizes of the map objects, so that they don't crowd the map
 		mt_width,mt_rad,min_dot,max_dot,min_quake,max_quake = quaketools.determinemtsize(self.minlon,self.maxlon,self.minlat,self.maxlat)
 
 		print 'Mt width and radius are as follows:'
 		print mt_width
 		print mt_rad
-
 
 		self.catalog = quaketools.get_cat(data_center=self.datacenter,includeallorigins=True,starttime=t1,endtime=t2,minmagnitude=mag1,maxmagnitude=mag2,maxlongitude=self.maxlon,minlongitude=self.minlon,maxlatitude=self.maxlat,minlatitude=self.minlat)
 		self.quakes, self.mts, self.events, self.qblasts = quaketools.cat2list(self.catalog)
@@ -552,7 +575,7 @@ class QWGUI(Frame):
 		filemenu.add_separator()
 
 		submenu2 = Menu(filemenu)
-		submenu2.add_command(label='World',command=self.worldquakes)
+		submenu2.add_command(label='World',command=self.WDquakes)
 		submenu2.add_command(label='USA',command=self.USAquakes)
 		submenu2.add_command(label='California',command=self.CAquakes)
 		submenu2.add_command(label='Oklahoma',command=self.OKquakes)
@@ -571,29 +594,104 @@ class QWGUI(Frame):
 		menubar.add_cascade(label="Options",menu=filemenu)
 
 		subm1 = Menu(menubar,tearoff=0)
-		subm1.add_command(label='Some command',command=self.placeholder)
+		subm1.add_command(label='Gutenburg-Richter plot',command=self.placeholder)
+		subm1.add_command(label='Cumulative moment release',command=self.cumulate_moment)
+		subm1.add_command(label='Binned quake activity',command=self.quaketimeplot)
 		menubar.add_cascade(label="Statistics",menu=subm1)
+
+
+#############################################################################
+# Some standard options for plotting quakes for various lengths of time
+#############################################################################
 
 
 	def M25_1wk(self):
 
-		print 'display'
+		self.minmag = 2.5
+		self.maxmag = 10
+
+		#Set the map to display all events in the last week
+
+		t1=self.now-604800
+
+		self.setquakesmanual(t1)
+
+		self.starttime = t1
 
 	def M45_1wk(self):
 
-		print 'display'
+		self.minmag = 4.5
+		self.maxmag = 10
+
+		#Set the map to display all events in the last week
+
+		t1=self.now-604800
+
+		self.setquakesmanual(t1)
+
+		self.starttime = t1
+
 
 	def M25_30d(self):
 
-		print 'display'
+		self.minmag = 2.5
+		self.maxmag = 10
+
+		#Set the map to display all events of M2.5+ in the last 30 days
+
+		t1=self.now-2592000
+
+		self.setquakesmanual(t1)
+
+		self.starttime = t1
 
 	def M45_30d(self):
 
-		print 'display'
+		self.minmag = 4.5
+		self.maxmag = 10
+
+		#Set the map to display all events of M4.5+ in the last 30 days
+
+		t1=self.now-2592000
+
+		self.setquakesmanual(t1)
+
+		self.starttime = t1 
 
 	def M60_365d(self):
 
-		print 'display'
+		self.minmag = 6.0
+		self.maxmag = 10
+
+		#Set the map to display all events in the last year 
+
+		t1=self.now-31536000
+
+		self.setquakesmanual(t1)
+
+		self.starttime = t1
+
+#############################################################################
+# Some standard options for plotting quakes for various lengths of time
+#############################################################################
+
+	def quaketimeplot(self):
+
+		'''Link to quake_atats historgram of quake activity binned by time'''
+
+		if ((self.now-self.starttime)) < 3e6:
+			fq = 'day'
+		else:
+			fq = 'week'
+
+		quakestats.quakeswithtime(self.quakes,freq=fq)
+
+	def cumulate_moment(self):
+
+		'''Link to quake_stats plot of cumulative moment release'''
+
+		quakestats.cumulativemoment(self.quakes)
+
 
 	def placeholder(self):
 
@@ -636,43 +734,20 @@ class QWGUI(Frame):
 
 		print 'Autoupdating catalog!'
 
-		t2 = str(datetime.datetime.today()).split(' ') #Update the time
-		t2 = t2[0]+'T'+t2[1][:-3]
-		self.now = UTCDateTime(t2)
-
-		t2 = self.now
-		t1 = t2-self.starttime
-
-		#Determine the new sizes of the map objects, so that they don't crowd the map
-		mt_width,mt_rad,min_dot,max_dot,min_quake,max_quake = quaketools.determinemtsize(self.minlon,self.maxlon,self.minlat,self.maxlat)
-		print min_quake,max_quake
-
-		#currently a problem - need to only get quakes for the region that we are displaying
-
-		self.catalog = quaketools.get_cat(data_center=self.datacenter,includeallorigins=True,starttime=t1,endtime=t2,minmagnitude=self.minmag,maxmagnitude=self.maxmag,maxlatitude=self.maxlat,minlatitude=self.minlat,minlongitude=self.minlon,maxlongitude=self.maxlon) #maxlongitude=self.maxlon,minlongitude=self.minlon,maxlatitude=self.maxlat,minlatitude=self.minlon)
-		self.quakes, self.mts, self.events, self.qblasts = quaketools.cat2list(self.catalog)
-
-		if self.momenttensors == True:
-
-			#plot the moment tensors and redraw
-			#self.quakesplotted = quaketools.plot_events(self.map,self.a,self.quakes)
-			self.mtlines, self.MTs, self.quakedots, xs, ys, urls = quaketools.plot_mt(self.map,self.a,self.f,self.quakes,self.mts,self.events,mt_width=3,radius=self.mtradius,angle_step=40,llat=self.minlat,ulat=self.maxlat,llon=self.minlon,ulon=self.maxlon)
-			Browse.updatedata(xs,ys,urls,self.mtradius)
-
-		else:
-			#only plotting events, so continue
-			self.quakesplotted = quaketools.plot_events(self.map,self.a,self.quakes,llat=self.minlat,ulat=self.maxlat,llon=self.minlon,ulon=self.maxlon,dist_bt=100,min_size=min_quake,max_size=max_quake)
-		
-		self.canvas.draw()
+		self.setquakesmanual(t1=self.starttime)
 
 
 	def USAquakes(self):
 
-		print 'display'
+		'''Zoom in on USA region'''
+
+		self.SetZoomMap(-132,-70,27,52)
 
 	def CAquakes(self):
 
-		print 'display'
+		'''Zoom in on CA region'''
+
+		self.SetZoomMap(-132,-115,32,42)
 
 	def AKquakes(self):
 
@@ -680,7 +755,13 @@ class QWGUI(Frame):
 
 	def OKquakes(self):
 
-		print 'display'
+		'''Zoom in on OK/Texas region'''
+
+		self.SetZoomMap(-105,-90.5,29,38)
+
+	def WDquakes(self):
+
+		self.SetZoomMap(-179.9,179.9,-89.9,89.9)
 
 	def PrettyMap(self,lat1,lat2,lon1,lon2):
 
@@ -708,7 +789,7 @@ class QWGUI(Frame):
 
 		#Map setup and quakes
 		self.map = Basemap(ax=self.a,lat_0=lat0,lon_0=lon0,resolution ='l',llcrnrlon=lon1,llcrnrlat=lat1,urcrnrlon=lon2,urcrnrlat=lat2)
-		self.map.arcgisimage(service='NatGeo_World_Map',verbose=False,xpixels=10000)
+		self.map.arcgisimage(service='NatGeo_World_Map',verbose=False,xpixels=600)
 
 		#plot some extra information
 
@@ -737,13 +818,13 @@ class QWGUI(Frame):
 
 		self.momenttensors = True
 		self.removemapobjs()
-		self.Autoupdate()
+		self.setquakesmanual(t1=self.starttime)
 
 	def setevents(self):
 
 		self.momenttensors = None
 		self.removemapobjs()
-		self.Autoupdate()
+		self.setquakesmanual(t1=self.starttime)
 
 	def SaveasPDF(self):
 		'''Saves the current frame as a .pdf file'''
